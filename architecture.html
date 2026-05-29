@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Systems architecture principles, white papers, and future system previews from Boswell Digital Solutions.">
+  <meta name="description" content="How BDS designs governance-first systems for clarity, control, and long-term reliability.">
   <title>Architecture — Boswell Digital Solutions</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -46,89 +46,102 @@
       </nav>
 
       <section class="page-hero">
-        <div class="page-hero__eyebrow">Systems Architecture</div>
-        <h1>Architecture as intent clarity, structure, and recoverability.</h1>
-        <p class="page-hero__lede">
-          This is the authority lane of the public site: principles, papers, and future system directions presented without startup theater and without leaking internal implementation noise.
-        </p>
-        <div class="page-actions">
-          <a href="contact.html" class="btn btn-primary">Discuss an Engagement</a>
-          <a href="services.html" class="btn btn-ghost">View Services</a>
-        </div>
+        <div class="page-hero__eyebrow">Architecture</div>
+        <h1>Architecture</h1>
+        <h2 class="page-hero__subtitle">Governance-first system design for clarity, control, and long-term reliability.</h2>
+        <p class="page-hero__lede">BDS systems are designed with explicit boundaries, modular layers, and auditable outputs. Intelligence is applied within controlled tracks to ensure clear intent, predictable behavior, and long-term stability.</p>
       </section>
 
       <section class="page-section" aria-labelledby="architecture-principles-heading">
         <div class="page-section__head">
-          <h2 id="architecture-principles-heading">Core principles</h2>
-          <p>Public architectural language should be plain enough to trust and specific enough to matter.</p>
+          <h2 id="architecture-principles-heading">Core Design Principles</h2>
         </div>
         <div class="page-grid page-grid--3">
           <article class="page-card">
-            <h3>Intent clarity</h3>
-            <p>Start by naming what the system must actually do, not by collecting fashionable components and hoping they form a whole.</p>
+            <h3>Governance First</h3>
+            <p>Systems operate within defined boundaries. No uncontrolled execution paths.</p>
           </article>
           <article class="page-card">
-            <h3>Structure</h3>
-            <p>Products should reflect the underlying sequence of work so operators can understand the system instead of memorizing exceptions.</p>
+            <h3>Evidence-Based Outputs</h3>
+            <p>Outputs are traceable to structured inputs and recorded decisions.</p>
           </article>
           <article class="page-card">
-            <h3>Recoverability</h3>
-            <p>Failures should degrade in understandable ways, preserve authority, and leave the operator with a clear next move.</p>
+            <h3>Modular Layers</h3>
+            <p>Interface, intelligence, and data are separated to reduce coupling and increase reliability.</p>
+          </article>
+          <article class="page-card">
+            <h3>Fail-Closed Defaults</h3>
+            <p>If constraints cannot be verified, the system degrades safely.</p>
+          </article>
+          <article class="page-card">
+            <h3>Vendor-Agnostic Infrastructure</h3>
+            <p>Components are designed to evolve without hard dependency on a single provider.</p>
+          </article>
+          <article class="page-card">
+            <h3>Human Accountability</h3>
+            <p>AI assists, but authority remains with the operator.</p>
           </article>
         </div>
+      </section>
+
+      <section class="page-section" aria-labelledby="architecture-layered-heading">
+        <div class="page-section__head">
+          <h2 id="architecture-layered-heading">Layered Architecture</h2>
+          <p>Architecture is treated as a first-class constraint. Each layer has a clear responsibility, and boundaries are enforced to keep systems predictable and maintainable as capabilities evolve.</p>
+        </div>
+        <div class="page-diagram">
+          <pre class="mermaid">flowchart TD
+    UI["Interface Layer\nWeb / Desktop / API"]
+    INT["Intelligence Layer\nModel routing / inference"]
+    DATA["Data Layer\nStructured contracts / provenance"]
+    INFRA["Infrastructure Layer\nCompute / storage / security"]
+
+    UI --> INT
+    INT --> DATA
+    DATA --> INFRA</pre>
+        </div>
+      </section>
+
+      <section class="page-section" aria-labelledby="architecture-flow-heading">
+        <article class="page-card">
+          <h2 id="architecture-flow-heading">Controlled Data Flow</h2>
+          <p>Inputs enter through defined contracts, are validated before processing, and produce outputs that are recorded with enough context to support review and accountability.</p>
+          <p class="page-flow-line">Input → Validation → Processing → Audit → Output</p>
+        </article>
+      </section>
+
+      <section class="page-section" aria-labelledby="architecture-security-heading">
+        <article class="page-card">
+          <h2 id="architecture-security-heading">Security and Integrity</h2>
+          <ul class="page-list">
+            <li>Input validation and safe defaults</li>
+            <li>Least-privilege access patterns</li>
+            <li>Separation of public and controlled surfaces</li>
+            <li>Reliable degradation on dependency failure</li>
+          </ul>
+        </article>
+      </section>
+
+      <section class="page-section" aria-labelledby="architecture-scale-heading">
+        <article class="page-card">
+          <h2 id="architecture-scale-heading">Scalability and Evolution</h2>
+          <p>The architecture supports incremental growth: adding new modules, extending data contracts, and evolving intelligence layers without rewriting the system from scratch.</p>
+        </article>
       </section>
 
       <section class="page-section" aria-labelledby="architecture-papers-heading">
-        <div class="page-section__head">
-          <h2 id="architecture-papers-heading">White papers</h2>
-          <p>These documents frame the current public system story and the security posture behind the commercial surface.</p>
-        </div>
-        <div class="page-link-list">
-          <a href="docs/store_security_architecture_v_1.md" class="page-link-card">
-            <strong>Store Security Architecture</strong>
-            <span>High-level framing for commerce, trust boundaries, and operational posture.</span>
-          </a>
-          <a href="docs/bds_homepage_wireframe_with_hud_v_1.md" class="page-link-card">
-            <strong>Homepage Wireframe</strong>
-            <span>Planning artifact for the brand surface, HUD posture, and public authority cues.</span>
-          </a>
-          <a href="docs/bds_website_pages_wireframes_v_1.md" class="page-link-card">
-            <strong>Website Wireframes</strong>
-            <span>Reference for the public page family and how content is staged across the site.</span>
-          </a>
-        </div>
-      </section>
-
-      <section class="page-section" aria-labelledby="architecture-advisory-heading">
-        <div class="page-section__head">
-          <h2 id="architecture-advisory-heading">Advisory &amp; counsel</h2>
-          <p>Architecture work frequently starts as an advisory engagement before it becomes a build effort.</p>
-        </div>
         <div class="page-callout">
-          <h3>When the decision is more important than the sprint</h3>
-          <p>Some teams do not need another implementation shop yet. They need a sober assessment of what is structurally sound, what is risky, and what to stop pretending will scale.</p>
-          <a href="services.html" class="page-inline-link">View Services</a>
+          <h2 id="architecture-papers-heading">Research &amp; White Papers</h2>
+          <p>For formal technical documentation describing current and future systems, visit the White Papers section.</p>
+          <div class="page-actions">
+            <a href="white-papers/index.html" class="btn btn-primary">View White Papers</a>
+          </div>
         </div>
       </section>
 
-      <section class="page-section" aria-labelledby="architecture-future-heading">
-        <div class="page-section__head">
-          <h2 id="architecture-future-heading">Future systems</h2>
-          <p>These are previews of directions under consideration, not roadmap promises.</p>
-        </div>
-        <div class="page-grid page-grid--3">
-          <article class="page-card">
-            <h3>Leopold</h3>
-            <p>Citizen-science ecological intelligence with place-based observation, structured evidence, and long-horizon environmental memory.</p>
-          </article>
-          <article class="page-card">
-            <h3>Livy</h3>
-            <p>Place-based history trails and self-guided tours that treat narrative and geography as first-class partners.</p>
-          </article>
-          <article class="page-card">
-            <h3>Convergence</h3>
-            <p>A future place-intelligence lane where ecology and history can be read together instead of kept in separate silos.</p>
-          </article>
+      <section class="page-section">
+        <div class="page-callout">
+          <p>Architecture is not an afterthought at BDS. It is the foundation.</p>
         </div>
       </section>
     </div>
@@ -144,5 +157,31 @@
   </footer>
 
   <script type="module" src="src/js/site.js"></script>
+  <script type="module">
+    import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs";
+
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: "base",
+      securityLevel: "strict",
+    });
+
+    async function renderMermaid() {
+      const blocks = document.querySelectorAll("pre.mermaid");
+      if (!blocks.length) return;
+
+      for (const pre of blocks) {
+        const code = pre.textContent;
+        const container = document.createElement("div");
+        container.className = "mermaid";
+        container.textContent = code ?? "";
+        pre.replaceWith(container);
+      }
+
+      await mermaid.run();
+    }
+
+    renderMermaid();
+  </script>
 </body>
 </html>

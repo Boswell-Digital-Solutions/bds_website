@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Security posture for Boswell Digital Solutions products and services.">
-  <title>Security — Boswell Digital Solutions</title>
+  <meta name="description" content="Security posture and responsible disclosure information for Boswell Digital Solutions.">
+  <title>Security | Boswell Digital Solutions</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet">
@@ -46,39 +46,103 @@
       </nav>
 
       <section class="page-hero">
-        <div class="page-hero__eyebrow">Security Posture</div>
-        <h1>Security presented as control, boundaries, and explicit operator intent.</h1>
-        <p class="page-hero__lede">
-          The public posture is straightforward: local-first where practical, explicit integrations when used, and no hidden architecture noise dressed up as reassurance.
-        </p>
-        <div class="page-actions">
-          <a href="architecture.html" class="btn btn-primary">View Architecture</a>
+        <div class="page-hero__eyebrow">Security</div>
+        <h1>Security</h1>
+        <p class="page-hero__lede">Boswell Digital Solutions (BDS) builds software with a governance-first mindset.</p>
+        <p class="page-hero__lede">Security is not an add-on. It is part of system design.</p>
+        <div class="page-callout">
+          <p><strong>Humans define intent. Systems enforce structure. Evidence confirms behavior.</strong></p>
         </div>
       </section>
 
-      <section class="page-section" aria-labelledby="security-summary-heading">
-        <div class="page-section__head">
-          <h2 id="security-summary-heading">What that means in practice</h2>
-          <p>The site should answer the basic trust questions clearly without pretending every claim is a cryptography lecture.</p>
+      <section class="page-section" aria-labelledby="security-principles-heading">
+        <article class="page-card">
+          <h2 id="security-principles-heading">Security Principles</h2>
+          <p><strong>Fail-closed by default</strong><br>If required information is missing or invalid, the system blocks execution rather than guessing.</p>
+          <p><strong>Least privilege access</strong><br>Access is restricted to only what is required to perform a function.</p>
+          <p><strong>Explicit system behavior</strong><br>Errors and degraded states are surfaced intentionally — not hidden.</p>
+          <p><strong>Traceable operations</strong><br>Critical operations are structured so they can be reviewed and understood later if needed.</p>
+        </article>
+      </section>
+
+      <section class="page-section" aria-labelledby="security-data-heading">
+        <article class="page-card">
+          <h2 id="security-data-heading">Data Handling</h2>
+          <p>We design for <strong>data minimization and clarity</strong>:</p>
+          <ul class="page-list">
+            <li>Only collect information required to operate the service</li>
+            <li>Separate operational telemetry from user content (where applicable)</li>
+            <li>Avoid unnecessary third-party data sharing</li>
+          </ul>
+          <p>If a product includes telemetry, it is for operational reliability (performance, stability, error diagnostics), not content harvesting.</p>
+        </article>
+      </section>
+
+      <section class="page-section" aria-labelledby="security-encryption-heading">
+        <article class="page-card">
+          <h2 id="security-encryption-heading">Encryption &amp; Transport</h2>
+          <ul class="page-list">
+            <li>HTTPS/TLS is used for encrypted network transport</li>
+            <li>Sensitive credentials are not exposed in client interfaces</li>
+            <li>Secrets are handled in restricted layers of the system</li>
+            <li>Systems are designed to allow key rotation without service disruption</li>
+          </ul>
+        </article>
+      </section>
+
+      <section class="page-section" aria-labelledby="security-auth-heading">
+        <article class="page-card">
+          <h2 id="security-auth-heading">Authentication &amp; Access Control</h2>
+          <p>Depending on deployment mode and product tier:</p>
+          <ul class="page-list">
+            <li>Secure session handling</li>
+            <li>Token-based API authentication</li>
+            <li>Scoped permissions or role-based access</li>
+            <li>Explicit validation of privileged actions</li>
+          </ul>
+        </article>
+      </section>
+
+      <section class="page-section" aria-labelledby="security-integrity-heading">
+        <article class="page-card">
+          <h2 id="security-integrity-heading">Operational Integrity</h2>
+          <p>If an issue occurs, our response posture is:</p>
+          <ol class="page-list">
+            <li>Contain impact</li>
+            <li>Assess exposure</li>
+            <li>Remediate root cause</li>
+            <li>Verify fix</li>
+            <li>Communicate appropriately</li>
+          </ol>
+          <p>We prioritize correction over concealment.</p>
+        </article>
+      </section>
+
+      <section class="page-section" aria-labelledby="security-disclosure-heading">
+        <div class="page-callout">
+          <h2 id="security-disclosure-heading">Responsible Disclosure</h2>
+          <p>If you believe you have identified a security issue, please report it directly:</p>
+          <p><strong>Email:</strong> <a href="mailto:charlesboswell@boswelldigitalsolutions.com">charlesboswell@boswelldigitalsolutions.com</a></p>
+          <p>Include:</p>
+          <ul class="page-list">
+            <li>Product or page affected</li>
+            <li>Steps to reproduce</li>
+            <li>Observed impact</li>
+            <li>Supporting screenshots or logs (if safe to share)</li>
+          </ul>
+          <p>Reports will be reviewed and addressed as quickly as practical.</p>
         </div>
-        <div class="page-grid page-grid--2">
-          <article class="page-card">
-            <h3>Local-first control summary</h3>
-            <p>Products like AuthorForge are positioned so core work can remain local instead of depending on a permanent browser session or forced cloud runtime.</p>
-          </article>
-          <article class="page-card">
-            <h3>Optional integrations are explicit</h3>
-            <p>When outside services are used, they are an intentional part of the workflow and not an invisible background dependency.</p>
-          </article>
-          <article class="page-card">
-            <h3>No hidden uploads</h3>
-            <p>The public claim is simple: users should know when work is staying local and when it is leaving the machine.</p>
-          </article>
-          <article class="page-card">
-            <h3>Governance-aware posture</h3>
-            <p>Operational claims are framed in terms of authority and control rather than magic trust words.</p>
-          </article>
-        </div>
+      </section>
+
+      <section class="page-section" aria-labelledby="security-business-heading">
+        <article class="page-card">
+          <h2 id="security-business-heading">Business Information</h2>
+          <address class="page-meta">
+            <p><strong>Boswell Digital Solutions LLC</strong></p>
+            <p>(Address placeholder — update when finalized)</p>
+            <p>Email: <a href="mailto:charlesboswell@boswelldigitalsolutions.com">charlesboswell@boswelldigitalsolutions.com</a></p>
+          </address>
+        </article>
       </section>
     </div>
   </main>

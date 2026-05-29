@@ -9,10 +9,20 @@ bds_website/
 ├── dev-server.ts
 ├── about.html
 ├── architecture.html
+├── white-papers/
+│   ├── Forge_White_Paper_AI_Accountability.docx
+│   ├── Forge_White_Paper_Academic_v2.docx
+│   ├── Leopold Ecology Stack — Source-locked Research Justification.docx
+│   ├── Leopold_Complete_Technical_Specification.docx
+│   ├── Leopold_Research_Validation_Analysis.docx
+│   ├── Leopold_Strategic_Positioning.docx
+│   ├── RIT_IEEE_White_Paper.docx
+│   └── index.html
 ├── authorforge-cost-comparison.html
 ├── authorforge-founder.html
 ├── authorforge.html
 ├── contact.html
+├── founder.html
 ├── forge.html
 ├── meet-smith.html
 ├── out/
@@ -20,7 +30,6 @@ bds_website/
 ├── index.html
 ├── products.html
 ├── security.html
-├── SMITH_icon.png
 ├── services.html
 ├── store.html
 ├── legal/
@@ -32,9 +41,13 @@ bds_website/
 ├── src/
 │   ├── assets/images/
 │   │   ├── bds-logo.png
-│   │   └── products/
-│   │       ├── AuthorForge.webp
-│   │       └── VibeForge.webp
+│   │   ├── products/
+│   │   │   ├── AuthorForge.webp
+│   │   │   └── VibeForge.webp
+│   │   └── site/
+│   │       ├── Profimage.JPG
+│   │       ├── Profimage.webp
+│   │       └── SMITH_icon.png
 │   ├── js/
 │   │   ├── contact-form.js
 │   │   └── site.js
@@ -73,7 +86,9 @@ bds_website/
 
 - `src/styles/` holds the actual reusable presentation system.
 - `src/js/` holds the small shared/browser-side behaviors for navigation and contact-form submission.
+- `src/assets/images/site/` holds shared public-page imagery such as the founder portrait and SMITH icon.
 - `docs/` contains planning and reference material that informed the implementation.
+- `white-papers/` holds the public white-paper landing page plus the current downloadable paper files.
 - `doc/system/` is the maintained modular system reference.
 - `out/` holds generated evidence artifacts already checked into the repo.
 - `tools/` contains governance and QC support code, including a vendored StateForge workspace.

@@ -1,22 +1,35 @@
 #!/usr/bin/env bash
-# BDS Documentation Protocol v2.0 — BUILD.sh
-# Assembles numbered section files into bwSYSTEM.md
-# Usage: bash doc/system/BUILD.sh
-
 set -euo pipefail
 
-PREFIX="bw"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-OUTPUT="${SCRIPT_DIR}/../${PREFIX}SYSTEM.md"
+PARTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(cd "$PARTS_DIR/../.." && pwd)"
+OUTPUT="${OUTPUT:-doc/BDSSYSTEM.md}"
+VALIDATOR="$PARTS_DIR/validate_snapshots.sh"
 
-sed 's#](\./#](./system/#g' "${SCRIPT_DIR}/_index.md" > "${OUTPUT}"
-printf '\n---\n' >> "${OUTPUT}"
+mkdir -p "$(dirname "$ROOT_DIR/$OUTPUT")"
 
-for part in "${SCRIPT_DIR}"/[0-9][0-9]-*.md; do
-  [ -f "$part" ] || continue
-  printf '\n' >> "${OUTPUT}"
-  cat "${part}" >> "${OUTPUT}"
-  printf '\n---\n' >> "${OUTPUT}"
+TMP_OUTPUT="$(mktemp)"
+trap 'rm -f "$TMP_OUTPUT"' EXIT
+
+if [ -f "$PARTS_DIR/_index.md" ]; then
+  cat "$PARTS_DIR/_index.md" > "$TMP_OUTPUT"
+fi
+
+shopt -s nullglob
+for part in "$PARTS_DIR"/[0-9][0-9]-*.md; do
+  echo "" >> "$TMP_OUTPUT"
+  echo "---" >> "$TMP_OUTPUT"
+  echo "" >> "$TMP_OUTPUT"
+  cat "$part" >> "$TMP_OUTPUT"
 done
+shopt -u nullglob
 
-echo "${PREFIX}SYSTEM.md rebuilt ($(wc -l < "${OUTPUT}") lines)"
+if [ -x "$VALIDATOR" ]; then
+  bash "$VALIDATOR" "$TMP_OUTPUT"
+fi
+
+cp "$TMP_OUTPUT" "$ROOT_DIR/$OUTPUT"
+chmod 664 "$ROOT_DIR/$OUTPUT"
+
+LINE_COUNT=$(wc -l < "$ROOT_DIR/$OUTPUT")
+echo "$OUTPUT assembled: $LINE_COUNT lines"

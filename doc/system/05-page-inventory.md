@@ -8,11 +8,13 @@
 | Products | `products.html` | Live product-entry page for applications |
 | Services | `services.html` | Live services-entry page |
 | Forge | `forge.html` | Live platform overview page |
-| Meet SMITH | `meet-smith.html` | Live secondary platform explainer with dedicated icon hero |
-| Architecture | `architecture.html` | Live authority / white-paper lane |
+| Meet SMITH | `meet-smith.html` | Live SMITH explainer framing it as the continuous authority HUD |
+| Architecture | `architecture.html` | Live public architecture explainer with Mermaid layered-system diagram |
+| White Papers | `white-papers/index.html` | Live public research archive with dated metadata and archive-style paper indexing |
 | Store | `store.html` | Live licensing surface with placeholder purchase coordination |
-| Security | `security.html` | Live trust/posture page |
+| Security | `security.html` | Live security posture and responsible-disclosure page |
 | About | `about.html` | Live company identity page |
+| Founder | `founder.html` | Live founder background and governance-philosophy page |
 | Contact | `contact.html` | Live inquiry and support page wired to the public intake service |
 | AuthorForge | `authorforge.html` | Live product detail page |
 | AuthorForge Founder | `authorforge-founder.html` | Live supporting detail page |
