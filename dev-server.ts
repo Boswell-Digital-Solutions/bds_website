@@ -5,13 +5,18 @@ import { join, normalize } from "node:path";
 
 const CONTENT_TYPES = new Map([
   [".css", "text/css; charset=utf-8"],
+  [".gif", "image/gif"],
   [".html", "text/html; charset=utf-8"],
+  [".ico", "image/x-icon"],
+  [".jpeg", "image/jpeg"],
+  [".jpg", "image/jpeg"],
   [".js", "text/javascript; charset=utf-8"],
   [".json", "application/json; charset=utf-8"],
   [".md", "text/markdown; charset=utf-8"],
   [".png", "image/png"],
   [".svg", "image/svg+xml"],
   [".txt", "text/plain; charset=utf-8"],
+  [".webp", "image/webp"],
   [".woff", "font/woff"],
   [".woff2", "font/woff2"],
 ]);
@@ -33,7 +38,7 @@ function resolvePath(pathname: string): string {
 }
 
 function contentTypeFor(path: string): string {
-  const extension = path.slice(path.lastIndexOf("."));
+  const extension = path.slice(path.lastIndexOf(".")).toLowerCase();
   return CONTENT_TYPES.get(extension) ?? "application/octet-stream";
 }
 

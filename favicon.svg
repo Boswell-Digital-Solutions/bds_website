@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="BDS">
+  <rect width="64" height="64" rx="12" fill="#0F172A"/>
+  <rect x="6" y="6" width="52" height="52" rx="8" fill="none" stroke="#273449" stroke-width="2"/>
+  <text x="32" y="33" dominant-baseline="central" text-anchor="middle"
+        font-family="'DM Sans', 'Segoe UI', Arial, sans-serif" font-weight="700"
+        font-size="26" letter-spacing="-1" fill="#E5E7EB">BD<tspan fill="#F97316">S</tspan></text>
+</svg>
