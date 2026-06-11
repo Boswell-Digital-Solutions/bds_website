@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+# Customer-only surfaces — nothing useful to index.
+Disallow: /login.html
+Disallow: /account.html
+Disallow: /account/
+Disallow: /checkout/
