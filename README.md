@@ -76,6 +76,36 @@ client: it renders ForgeCustomer state and never holds commercial truth.
   and `SUPABASE_ANON_KEY`.
 - Full reference: `doc/system/09-forgecustomer-integration.md`.
 
+## Run
+
+- `bun run dev` — serves the site plus the BFF proxy locally (default
+  `http://localhost:3000`; configure via `.env`, see `.env.example`).
+- `bun run start` — same entry point; this is the production start command.
+
+The server only exposes the public surface: root `*.html` pages, `src/`,
+`legal/`, `account/`, `checkout/`, `white-papers/`, `favicon.svg`, and
+`robots.txt`. Server code, internal docs (`doc/`, `docs/`), and tooling
+(`tools/`) are never served.
+
+## Deployment (Render)
+
+The site deploys as a single Render **Web Service** — a Static Site won't do
+because the ForgeCustomer BFF proxy must run server-side. `render.yaml` is a
+Blueprint describing the service:
+
+- **Runtime:** Node (Bun is preinstalled on Render; pinned via `BUN_VERSION`).
+- **Build:** `bun install` — **Start:** `bun run start`
+- **Health check:** `/healthz`
+- **Environment:** `FORGECUSTOMER_API_BASE`, `SUPABASE_URL`, and
+  `SUPABASE_ANON_KEY` are declared with `sync: false`; set their values in the
+  Render dashboard. Until they are set, the static site serves normally and
+  the commerce surface fails closed (503 `INTEGRATION_UNCONFIGURED` from the
+  BFF, "Supabase is not configured" on login).
+
+To deploy: Render Dashboard → **New → Blueprint** → select this repository.
+The `free` plan spins down when idle; switch `plan` to `starter` in
+`render.yaml` for an always-on production site.
+
 ## SDVOSB
 
 Boswell Digital Solutions LLC is a Service-Disabled Veteran-Owned Small Business.

@@ -1,0 +1,32 @@
+# Render Blueprint for the BDS website.
+# Deploy: Render Dashboard → New → Blueprint → select this repository.
+#
+# The site ships as a single Web Service (not a Static Site) because the
+# ForgeCustomer BFF proxy in server/forge.ts must run server-side.
+version: "1"
+
+services:
+  - type: web
+    name: bds-website
+    # Bun is preinstalled in Render's native Node environment.
+    runtime: node
+    # Free instances spin down when idle (cold starts). Switch to "starter"
+    # or higher for an always-on production site.
+    plan: free
+    buildCommand: bun install
+    startCommand: bun run start
+    healthCheckPath: /healthz
+    envVars:
+      - key: BUN_VERSION
+        value: 1.3.11
+      # Values are environment-specific; Render prompts for them when the
+      # Blueprint is created (sync: false keeps them out of the repo).
+      # Until they are set the static site still serves and the BFF fails
+      # closed with 503 INTEGRATION_UNCONFIGURED.
+      - key: FORGECUSTOMER_API_BASE
+        sync: false
+      # Public by design — served to the browser via /api/public-config.
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false

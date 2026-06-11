@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "bun run dev-server.ts",
+    "start": "bun run dev-server.ts",
     "qc:stateforge": "bun run tools/qc/stateforge.ts"
   }
 }
