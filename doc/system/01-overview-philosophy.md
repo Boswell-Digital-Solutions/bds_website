@@ -9,17 +9,22 @@
 - services and advisory work
 - systems architecture thought surface
 - a security-first posture
-- a future commerce surface for licensed software and services
+- a commerce and account surface for licensed software, backed by ForgeCustomer
 - legal pages for terms, privacy, refund, and EULA
 
 ## Current Delivery Model
 
-The site is implemented as static HTML/CSS with a minimal inline JavaScript layer on the homepage. It is intentionally simple:
+The site is implemented as static HTML/CSS with a minimal vanilla JavaScript
+layer. The marketing pages stay simple:
 
 - no framework runtime in production pages
 - no client-side state management library
-- no active checkout flow yet
-- no authenticated customer area yet
+
+The account surface adds a thin, dependency-light client (`src/js/forge/*`) plus
+a server-side BFF proxy (`server/forge.ts`) for ForgeCustomer:
+
+- Stripe Checkout start and a signed-in account area are live (see §7, §9)
+- Supabase handles login; the website holds no commercial truth of its own
 
 This keeps the public surface easy to inspect and cheap to ship while the brand, copy, and governance posture are still being refined.
 
@@ -45,11 +50,17 @@ The presentation model is consistent across the repo:
 
 ## Scope Boundaries
 
-This repository currently covers the website shell and supporting documentation. It does not yet contain:
+This repository covers the website shell, supporting documentation, and the
+ForgeCustomer customer-surface client (see §9). It now contains:
 
-- implemented Stripe checkout flows
-- passkey registration or login code
-- server-side webhook handling
+- Stripe Checkout start via the ForgeCustomer BFF proxy (`server/forge.ts`)
+- Supabase-based login and a signed-in account dashboard
+
+It still does not contain (these live in other systems or remain planned):
+
+- passkey registration/authentication (login uses Supabase today)
+- server-side Stripe webhook handling (owned by ForgeCustomer, not the website)
 - product detail pages beyond `authorforge.html`
 
-Those capabilities are described in planning docs, but they are not present in this repo as executable website features today.
+The website never holds commercial truth: it renders state ForgeCustomer owns and
+forwards the signed-in user's own token through its server-side proxy.

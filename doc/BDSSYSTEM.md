@@ -68,17 +68,22 @@ High-level architecture, authority posture, and surface ownership.
 - services and advisory work
 - systems architecture thought surface
 - a security-first posture
-- a future commerce surface for licensed software and services
+- a commerce and account surface for licensed software, backed by ForgeCustomer
 - legal pages for terms, privacy, refund, and EULA
 
 ## Current Delivery Model
 
-The site is implemented as static HTML/CSS with a minimal inline JavaScript layer on the homepage. It is intentionally simple:
+The site is implemented as static HTML/CSS with a minimal vanilla JavaScript
+layer. The marketing pages stay simple:
 
 - no framework runtime in production pages
 - no client-side state management library
-- no active checkout flow yet
-- no authenticated customer area yet
+
+The account surface adds a thin, dependency-light client (`src/js/forge/*`) plus
+a server-side BFF proxy (`server/forge.ts`) for ForgeCustomer:
+
+- Stripe Checkout start and a signed-in account area are live (see §7, §9)
+- Supabase handles login; the website holds no commercial truth of its own
 
 This keeps the public surface easy to inspect and cheap to ship while the brand, copy, and governance posture are still being refined.
 
@@ -104,14 +109,20 @@ The presentation model is consistent across the repo:
 
 ## Scope Boundaries
 
-This repository currently covers the website shell and supporting documentation. It does not yet contain:
+This repository covers the website shell, supporting documentation, and the
+ForgeCustomer customer-surface client (see §9). It now contains:
 
-- implemented Stripe checkout flows
-- passkey registration or login code
-- server-side webhook handling
+- Stripe Checkout start via the ForgeCustomer BFF proxy (`server/forge.ts`)
+- Supabase-based login and a signed-in account dashboard
+
+It still does not contain (these live in other systems or remain planned):
+
+- passkey registration/authentication (login uses Supabase today)
+- server-side Stripe webhook handling (owned by ForgeCustomer, not the website)
 - product detail pages beyond `authorforge.html`
 
-Those capabilities are described in planning docs, but they are not present in this repo as executable website features today.
+The website never holds commercial truth: it renders state ForgeCustomer owns and
+forwards the signed-in user's own token through its server-side proxy.
 
 ---
 
@@ -128,13 +139,24 @@ The site is a static multi-page website:
 
 ## Rendering Model
 
-Each page is server-agnostic HTML. The development loop uses a small local static server launched through Bun:
+Each page is server-agnostic HTML. The development loop uses a small local server launched through Bun:
 
 ```bash
 bun run dev
 ```
 
 The `dev` script runs `dev-server.ts`. There is no application bundling pipeline for the website pages themselves.
+
+Beyond static files, `dev-server.ts` also hosts the server-side surface for the
+account area:
+
+- `/api/public-config` — public, non-secret config (Supabase URL + anon key)
+- `/api/forge/*` — the ForgeCustomer BFF proxy (`server/forge.ts`), which
+  forwards the signed-in user's own Supabase access token to ForgeCustomer and
+  blocks any non-customer route. See §9.
+
+The browser never calls ForgeCustomer directly (it has no CORS layer); all such
+traffic is mediated by this server.
 
 ## Shared Layout Pattern
 
@@ -150,10 +172,11 @@ This is currently duplication-by-copy rather than templated composition. The hom
 
 The current website routes are organized into clear public lanes:
 
-1. application buying path through `products.html`, `authorforge.html`, and `store.html`
+1. application buying path through `products.html`, `authorforge.html`, `store.html`, and `pricing.html`
 2. services inquiry path through `services.html` and `contact.html`
 3. platform/story path through `forge.html` and `meet-smith.html`
 4. authority/trust path through `architecture.html` and `security.html`
+5. customer/account path through `login.html`, `account.html`, the `checkout/` pages, and the `account/` state pages (ForgeCustomer-backed; see §9)
 
 ## Homepage Interaction Layer
 
@@ -161,6 +184,7 @@ The client-side behavior is split across two places:
 
 - `src/js/site.js` provides shared mobile-nav behavior for every page
 - `src/js/contact-form.js` provides the contact-page intake submission flow
+- `src/js/forge/*` provides the ForgeCustomer customer surface (auth, BFF calls, account/checkout/deletion controllers) on the account-area pages
 - `index.html` contains the homepage-only HUD behavior
 - the HUD script handles open/close state, overlay dismissal, `Escape`, focus handoff into the input, and focus trapping inside the panel
 
@@ -182,7 +206,7 @@ As checked in today, mobile navigation is implemented through one shared script 
 The repo now follows the standard Forge modular doc pattern:
 
 - editable source parts in `doc/system/`
-- generated unified reference in `doc/bwSYSTEM.md`
+- generated unified reference in `doc/BDSSYSTEM.md`
 - deterministic assembly via `doc/system/BUILD.sh`
 
 ---
@@ -599,7 +623,7 @@ What does not exist yet:
 
 ## Known Risks
 
-1. Stripe checkout is still placeholder-level; the store currently routes into contact-based purchase coordination rather than live payment links.
+1. AuthorForge Pro checkout is live through ForgeCustomer (Stripe-hosted) via the `pricing.html` flow; the one-time Standard license still uses contact-based coordination. Checkout correctness depends on a reachable ForgeCustomer and the webhook-driven subscription projection (the success page polls rather than trusting the redirect).
 2. Only AuthorForge has a dedicated detail page today; additional product pages will need the same treatment as the portfolio expands.
 3. The contact form now depends on public intake-service availability; if that service is down, users fall back to business email.
 4. Security and ecosystem claims can outpace implementation if future copy is not kept precise.
@@ -610,7 +634,7 @@ What does not exist yet:
 When the website structure or system claims change:
 
 1. update the relevant `doc/system/*.md` part files
-2. rebuild `doc/bwSYSTEM.md`
+2. rebuild the assembled `doc/BDSSYSTEM.md` with `bash doc/system/BUILD.sh`
 3. keep architectural claims aligned with implemented behavior
 
 ---

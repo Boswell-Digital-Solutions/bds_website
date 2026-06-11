@@ -33,7 +33,7 @@ What does not exist yet:
 
 ## Known Risks
 
-1. Stripe checkout is still placeholder-level; the store currently routes into contact-based purchase coordination rather than live payment links.
+1. AuthorForge Pro checkout is live through ForgeCustomer (Stripe-hosted) via the `pricing.html` flow; the one-time Standard license still uses contact-based coordination. Checkout correctness depends on a reachable ForgeCustomer and the webhook-driven subscription projection (the success page polls rather than trusting the redirect).
 2. Only AuthorForge has a dedicated detail page today; additional product pages will need the same treatment as the portfolio expands.
 3. The contact form now depends on public intake-service availability; if that service is down, users fall back to business email.
 4. Security and ecosystem claims can outpace implementation if future copy is not kept precise.
@@ -44,5 +44,5 @@ What does not exist yet:
 When the website structure or system claims change:
 
 1. update the relevant `doc/system/*.md` part files
-2. rebuild `doc/bwSYSTEM.md`
+2. rebuild the assembled `doc/BDSSYSTEM.md` with `bash doc/system/BUILD.sh`
 3. keep architectural claims aligned with implemented behavior
