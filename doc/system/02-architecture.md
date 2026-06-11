@@ -11,13 +11,24 @@ The site is a static multi-page website:
 
 ## Rendering Model
 
-Each page is server-agnostic HTML. The development loop uses a small local static server launched through Bun:
+Each page is server-agnostic HTML. The development loop uses a small local server launched through Bun:
 
 ```bash
 bun run dev
 ```
 
 The `dev` script runs `dev-server.ts`. There is no application bundling pipeline for the website pages themselves.
+
+Beyond static files, `dev-server.ts` also hosts the server-side surface for the
+account area:
+
+- `/api/public-config` — public, non-secret config (Supabase URL + anon key)
+- `/api/forge/*` — the ForgeCustomer BFF proxy (`server/forge.ts`), which
+  forwards the signed-in user's own Supabase access token to ForgeCustomer and
+  blocks any non-customer route. See §9.
+
+The browser never calls ForgeCustomer directly (it has no CORS layer); all such
+traffic is mediated by this server.
 
 ## Shared Layout Pattern
 
@@ -33,10 +44,11 @@ This is currently duplication-by-copy rather than templated composition. The hom
 
 The current website routes are organized into clear public lanes:
 
-1. application buying path through `products.html`, `authorforge.html`, and `store.html`
+1. application buying path through `products.html`, `authorforge.html`, `store.html`, and `pricing.html`
 2. services inquiry path through `services.html` and `contact.html`
 3. platform/story path through `forge.html` and `meet-smith.html`
 4. authority/trust path through `architecture.html` and `security.html`
+5. customer/account path through `login.html`, `account.html`, the `checkout/` pages, and the `account/` state pages (ForgeCustomer-backed; see §9)
 
 ## Homepage Interaction Layer
 
@@ -44,6 +56,7 @@ The client-side behavior is split across two places:
 
 - `src/js/site.js` provides shared mobile-nav behavior for every page
 - `src/js/contact-form.js` provides the contact-page intake submission flow
+- `src/js/forge/*` provides the ForgeCustomer customer surface (auth, BFF calls, account/checkout/deletion controllers) on the account-area pages
 - `index.html` contains the homepage-only HUD behavior
 - the HUD script handles open/close state, overlay dismissal, `Escape`, focus handoff into the input, and focus trapping inside the panel
 
@@ -65,5 +78,5 @@ As checked in today, mobile navigation is implemented through one shared script 
 The repo now follows the standard Forge modular doc pattern:
 
 - editable source parts in `doc/system/`
-- generated unified reference in `doc/bwSYSTEM.md`
+- generated unified reference in `doc/BDSSYSTEM.md`
 - deterministic assembly via `doc/system/BUILD.sh`
