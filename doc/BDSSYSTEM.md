@@ -195,9 +195,11 @@ The repo now follows the standard Forge modular doc pattern:
 |------|------------|-------|
 | Public pages | HTML5 | Static multi-page site |
 | Styling | CSS | Shared tokens plus page-specific styles |
-| Interaction | Vanilla JavaScript | Shared `src/js/site.js` plus homepage HUD inline script |
-| Dev server | Bun + local TypeScript server | `bun run dev` executes `dev-server.ts` |
-| Package manager | Bun | Minimal `package.json` |
+| Interaction | Vanilla JavaScript | Shared `src/js/site.js`, homepage HUD inline script, plus `src/js/forge/*` ES modules for the account surface |
+| Auth | Supabase JS (CDN ESM) | Client-side login; access token forwarded to the BFF |
+| Customer/commerce API | ForgeCustomer (Rust/Axum) | Reached only through the server-side BFF proxy `server/forge.ts` (see §9) |
+| Dev server / BFF | Bun + local TypeScript server | `bun run dev` executes `dev-server.ts`, which also serves `/api/forge/*` and `/api/public-config` |
+| Package manager | Bun | Minimal `package.json`; no client bundler (modules load directly) |
 
 ## Design Stack
 
@@ -229,12 +231,14 @@ This stack is optimized for:
 - fast edits to copy and presentation
 - simple hosting on any static-capable platform
 
+Commerce and auth are now integrated through ForgeCustomer (server-side BFF) and
+Supabase login; see §7 and §9.
+
 It is not yet optimized for:
 
 - component reuse through templates
 - typed frontend logic
 - automated content generation pipelines
-- integrated commerce or auth backends
 
 ---
 
@@ -245,9 +249,13 @@ It is not yet optimized for:
 ```text
 bds_website/
 ├── AUDIT_REPORT.md
+├── .env.example
 ├── bun.lock
 ├── dev-server.ts
+├── server/
+│   └── forge.ts            # ForgeCustomer BFF proxy (allowlist + token forwarding)
 ├── about.html
+├── account.html
 ├── architecture.html
 ├── white-papers/
 │   ├── Forge_White_Paper_AI_Accountability.docx
@@ -268,10 +276,18 @@ bds_website/
 ├── out/
 │   └── stateforge.evidence.bundle.json
 ├── index.html
+├── login.html
+├── pricing.html
 ├── products.html
 ├── security.html
 ├── services.html
 ├── store.html
+├── checkout/
+│   ├── success.html        # polls subscriptions; never trusts the redirect
+│   └── cancel.html
+├── account/
+│   ├── suspended.html      # 403 CUSTOMER_SUSPENDED landing
+│   └── closed.html         # closed / deleted account landing
 ├── legal/
 │   ├── ecosystem.html
 │   ├── eula.html
@@ -290,7 +306,18 @@ bds_website/
 │   │       └── SMITH_icon.png
 │   ├── js/
 │   │   ├── contact-form.js
-│   │   └── site.js
+│   │   ├── site.js
+│   │   └── forge/              # ForgeCustomer client modules (see §9)
+│   │       ├── account.js
+│   │       ├── api.js
+│   │       ├── checkout-success.js
+│   │       ├── config.js
+│   │       ├── deletion.js
+│   │       ├── errors.js
+│   │       ├── login.js
+│   │       ├── pricing.js
+│   │       ├── session.js
+│   │       └── supabase.js
 │   └── styles/
 │       ├── footer.css
 │       ├── global.css
@@ -298,6 +325,7 @@ bds_website/
 │       ├── hud.css
 │       ├── tokens.css
 │       └── pages/
+│           ├── account.css
 │           ├── home.css
 │           ├── product-detail.css
 │           ├── products.css
@@ -326,6 +354,8 @@ bds_website/
 
 - `src/styles/` holds the actual reusable presentation system.
 - `src/js/` holds the small shared/browser-side behaviors for navigation and contact-form submission.
+- `src/js/forge/` holds the ForgeCustomer customer-surface client (auth, BFF calls, account/checkout/deletion controllers).
+- `server/forge.ts` is the server-side BFF proxy to ForgeCustomer, wired into `dev-server.ts`.
 - `src/assets/images/site/` holds shared public-page imagery such as the founder portrait and SMITH icon.
 - `docs/` contains planning and reference material that informed the implementation.
 - `white-papers/` holds the public white-paper landing page plus the current downloadable paper files.
@@ -355,7 +385,8 @@ bds_website/
 | Meet SMITH | `meet-smith.html` | Live SMITH explainer framing it as the continuous authority HUD |
 | Architecture | `architecture.html` | Live public architecture explainer with Mermaid layered-system diagram |
 | White Papers | `white-papers/index.html` | Live public research archive with dated metadata and archive-style paper indexing |
-| Store | `store.html` | Live licensing surface with placeholder purchase coordination |
+| Store | `store.html` | Live licensing surface; Pro lane links to `pricing.html` |
+| Pricing | `pricing.html` | Live catalog + Stripe Checkout start (ForgeCustomer) |
 | Security | `security.html` | Live security posture and responsible-disclosure page |
 | About | `about.html` | Live company identity page |
 | Founder | `founder.html` | Live founder background and governance-philosophy page |
@@ -373,6 +404,20 @@ bds_website/
 | Refund | `legal/refund.html` | Live policy page |
 | EULA | `legal/eula.html` | Live multi-product software license page with Pro / ecosystem integration terms |
 | Ecosystem Terms | `legal/ecosystem.html` | Live optional ecosystem feature terms page |
+
+## Account Surface (ForgeCustomer)
+
+These pages render customer state owned by ForgeCustomer. They are `noindex` and
+require a Supabase session (except the dedicated state pages). See §9.
+
+| Page | Path | Status |
+|------|------|--------|
+| Sign in | `login.html` | Supabase login / sign-up / magic link |
+| Account dashboard | `account.html` | Subscription, licenses, installations/devices, usage, deletion controls |
+| Checkout success | `checkout/success.html` | Polls `GET /v1/subscriptions` until `grants_cloud: true` |
+| Checkout canceled | `checkout/cancel.html` | No-charge return page |
+| Account suspended | `account/suspended.html` | Landing page for `403 CUSTOMER_SUSPENDED` |
+| Account closed | `account/closed.html` | Landing page for closed/deleted accounts |
 
 ## Homepage Content Blocks
 
@@ -394,9 +439,11 @@ All public pages load the shared style sheets, including `hud.css`. Only the hom
 
 The site communicates several future capabilities that are not implemented here yet:
 
-- live Stripe payment links and automated fulfillment
 - dedicated product detail pages beyond AuthorForge
 - contextual HUD intelligence beyond static suggestions
+
+AuthorForge Pro checkout is now live through ForgeCustomer (Stripe-hosted),
+replacing the earlier placeholder-only commerce posture.
 
 That gap is acceptable as long as the marketing copy remains explicit about planned versus available functionality.
 
@@ -465,16 +512,36 @@ The site positions BDS around:
 
 These are presented most clearly on the homepage, `security.html`, and `docs/store_security_architecture_v_1.md`.
 
-## Important Implementation Boundary
+## Commerce Implementation: ForgeCustomer
 
-In this repo, those items are largely documentation and positioning statements today. The checked-in website code does not yet implement:
+Customer identity, commerce, licensing, entitlements, installations, and usage
+are owned by **ForgeCustomer** (Rust/Axum), not by this website. The site is a
+pure customer-surface client that renders ForgeCustomer state and never holds
+commercial truth. The full integration is documented in
+`§9 ForgeCustomer Integration`.
 
-- passkey registration/authentication
-- Stripe checkout session creation
-- webhook receipt and verification
-- signed admin gateway verification logic
+Key boundaries enforced in code:
 
-That means the security model is currently architectural intent plus site messaging, not a full production commerce stack.
+- All ForgeCustomer calls go through this site's server-side BFF proxy
+  (`server/forge.ts`); the browser never calls ForgeCustomer directly (it has no
+  CORS layer). The proxy forwards the signed-in user's own Supabase access token.
+- An explicit allowlist blocks every non-customer route, including `/v1/admin/*`.
+- No Supabase service-role key, Stripe secret, or operator credential is present
+  in the website or its client bundles. Stripe Checkout is hosted; no card data
+  touches the site.
+- Entitlements activate from Stripe's webhook-driven projection, never from a
+  browser redirect — the checkout success page polls `GET /v1/subscriptions`
+  until `grants_cloud: true`.
+
+Login reuses Supabase; ForgeCustomer validates JWTs from the same project.
+
+## Still Documentation, Not Code
+
+The following remain positioning statements rather than checked-in website
+behavior:
+
+- passkey registration/authentication (the website uses Supabase login today)
+- signed admin gateway verification logic (lives in Forge Command, not here)
 
 ## Public Intake Boundary
 
@@ -491,9 +558,9 @@ The public store posture is intentionally bounded:
 - licensed software and services only
 - no card handling on the website itself
 - legal terms already scaffolded
-- store flow currently routes buyers into a simple licensing page plus contact-based purchase coordination until Stripe Payment Links are enabled
+- the AuthorForge Pro lane routes buyers through `pricing.html` into ForgeCustomer-driven Stripe Checkout; the one-time Standard license still uses contact-based coordination
 
-This is a reasonable sequence for a repo that is still establishing brand and trust surfaces first.
+The store page now links the Pro lane to `pricing.html`, where checkout is started against ForgeCustomer.
 
 ---
 
@@ -545,6 +612,145 @@ When the website structure or system claims change:
 1. update the relevant `doc/system/*.md` part files
 2. rebuild `doc/bwSYSTEM.md`
 3. keep architectural claims aligned with implemented behavior
+
+---
+
+# 9. ForgeCustomer Integration
+
+## Role and Boundary
+
+ForgeCustomer (repo: `Boswecw/forgecustomer`, Rust/Axum) is the authority for
+customer identity, commerce, licensing, entitlements, installations, and usage
+for Boswell Digital Solutions products. AuthorForge is the first product.
+
+The website is a pure **customer-surface client**: it renders state ForgeCustomer
+owns and never holds commercial truth itself. It only ever calls the public
+**customer** endpoints (`/v1/...`) with the signed-in user's own Supabase access
+token. It never touches `/v1/admin/*` (that belongs to Forge Command) and never
+holds the Supabase service-role key, any Stripe secret, or any operator
+credential.
+
+## Why a Server-Side BFF
+
+ForgeCustomer currently exposes **no CORS layer**, so the browser must not call
+it directly. Every ForgeCustomer request is routed through this site's own
+server — a backend-for-frontend (BFF) proxy in `server/forge.ts`, wired into
+`dev-server.ts`. The proxy forwards the user's Supabase access token per request
+and marks every response `Cache-Control: no-store`, so one user's response is
+never cached for another.
+
+### Request path
+
+```
+Browser (Supabase session)
+  → fetch /api/forge/v1/...  (Authorization: Bearer <user jwt>)
+    → BFF proxy (server/forge.ts)   [allowlist check, token forwarded]
+      → FORGECUSTOMER_API_BASE/v1/...
+```
+
+### Allowlist
+
+`server/forge.ts` holds an explicit allowlist of `(method, path)` pairs. Anything
+not on the list — notably every `/v1/admin/*` route and any operator surface — is
+rejected with a `404 NOT_FOUND` before any upstream request is made. Public
+catalog endpoints (`/v1/products`, `/v1/plans`, `/v1/entitlements/keys`) are the
+only routes the proxy will forward without a user token.
+
+## Configuration (env)
+
+| Variable | Scope | Purpose |
+|----------|-------|---------|
+| `FORGECUSTOMER_API_BASE` | server only | ForgeCustomer base URL, e.g. `https://api.forgecustomer.example` |
+| `SUPABASE_URL` | public | Supabase project URL, reused for login |
+| `SUPABASE_ANON_KEY` | public | Supabase anon/publishable key, reused for login |
+
+The two Supabase values are public and reach the browser through
+`GET /api/public-config`. No secret is ever exposed there. ForgeCustomer
+validates JWTs from the same Supabase project. See `.env.example`.
+
+## Error Contract
+
+Every non-2xx ForgeCustomer response carries:
+
+```json
+{ "error": { "code": "...", "message": "...", "correlation_id": "...", "details": {} } }
+```
+
+Handling is centralized in `src/js/forge/errors.js` (`describeForgeError`). The
+`correlation_id` is logged with every error — server-side in the proxy and
+client-side in the error parser — so support can trace it.
+
+| Status / code | UX treatment |
+|---------------|--------------|
+| 401 `UNAUTHENTICATED` / `TOKEN_EXPIRED` | refresh the session once and retry; on repeat, sign out and re-login |
+| 403 `CUSTOMER_SUSPENDED` | redirect to `/account/suspended.html` |
+| 403 `FORBIDDEN` (closed / unprovisioned) | sign out, redirect to `/account/closed.html` |
+| 403 `REVOKED` | distinct inline message + support contact (never self-serviceable) |
+| 402 `QUOTA_EXCEEDED` | upsell to `/pricing.html` (details carry `limit` + `used`) |
+| 402 `DEVICE_LIMIT_REACHED` | prompt to remove a device (details carry `limit` + `used`) |
+| 422 `VALIDATION_FAILED` | field-level message (`details.field` names the input) |
+| 409 `CONFLICT` | conflict message, refresh and retry |
+
+## Flows
+
+### 1. Provision on first sign-in
+
+`src/js/forge/session.js` `bootstrapSession()` runs before any other call on an
+authenticated page. It ensures `POST /v1/account/provision` has run once per
+session (idempotent server-side; returns `created: false` on repeat), passing an
+optional best-effort timezone hint.
+
+### 2. Pricing → Stripe Checkout
+
+`pricing.html` + `src/js/forge/pricing.js` render the public catalog. The free
+baseline plan (`authorforge_included`) is not checkout-able. The paid plan
+(`authorforge_pro`) starts checkout via `POST /v1/checkout` (with an
+`Idempotency-Key`), then the browser is sent to the returned `checkout_url`.
+
+### 3. Checkout success — poll, never trust the redirect
+
+`checkout/success.html` + `src/js/forge/checkout-success.js` only say "payment
+received, activating…" and poll `GET /v1/subscriptions` until the webhook-driven
+projection shows `grants_cloud: true`. On timeout it shows "this can take a
+minute" with a manual refresh. **The UI is never flipped to active based on the
+redirect alone.**
+
+### 4. Account dashboard (reads)
+
+`account.html` + `src/js/forge/account.js` render, read-only:
+
+- `GET /v1/account` — identifiers
+- `GET /v1/subscriptions` — status, `grants_cloud`, `current_period_end`, `cancel_at_period_end`
+- `GET /v1/licenses` — `status`, `device_limit`, `active_devices`
+- `GET /v1/installations` — status / last heartbeat, with
+  `POST /v1/installations/{id}/deactivate` to free a device slot
+- `GET /v1/usage/current` — per-meter usage bars (the website never writes usage)
+
+### 5. Account deletion
+
+`src/js/forge/deletion.js` (in the account page) drives the deletion lifecycle:
+`POST /v1/account/deletion-request`, `GET` the latest, and
+`POST /v1/account/deletion-request/cancel`. It renders every state —
+requested / verified / cooling_off (cancellable, shows `cooling_off_until`) /
+processing (cancel disabled, point of no return) / completed / rejected /
+canceled. After completion the API returns 403 for the account and the user is
+signed out gracefully and sent to `/account/closed.html`.
+
+## Module Map
+
+| File | Responsibility |
+|------|----------------|
+| `server/forge.ts` | BFF proxy: allowlist, token forwarding, `no-store`, correlation-id logging, public-config |
+| `src/js/forge/config.js` | Fetch public config (`/api/public-config`) |
+| `src/js/forge/supabase.js` | Supabase client + session/token helpers |
+| `src/js/forge/errors.js` | Error contract → typed `ForgeError` + UX mapping |
+| `src/js/forge/api.js` | BFF client with 401 refresh-and-retry; typed endpoint wrappers |
+| `src/js/forge/session.js` | Session bootstrap + provision-once + central error redirect |
+| `src/js/forge/login.js` | Login / sign-up / magic-link controller |
+| `src/js/forge/pricing.js` | Catalog render + checkout start |
+| `src/js/forge/checkout-success.js` | Activation polling |
+| `src/js/forge/account.js` | Dashboard reads + device deactivation |
+| `src/js/forge/deletion.js` | Deletion lifecycle |
 
 ---
 

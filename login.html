@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Sign in to your Boswell Digital Solutions account.">
+  <meta name="robots" content="noindex">
+  <title>Sign In — Boswell Digital Solutions</title>
+  <link rel="canonical" href="https://boswelldigitalsolutions.com/login.html">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/png" href="/src/assets/images/bds-logo.png">
+  <link rel="apple-touch-icon" href="/src/assets/images/bds-logo.png">
+  <meta name="theme-color" content="#0F172A">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/styles/global.css">
+  <link rel="stylesheet" href="/src/styles/header.css">
+  <link rel="stylesheet" href="/src/styles/footer.css">
+  <link rel="stylesheet" href="/src/styles/pages/site-pages.css">
+  <link rel="stylesheet" href="/src/styles/pages/account.css">
+</head>
+<body>
+  <a href="#main" class="skip-link">Skip to main content</a>
+  <header class="site-header" role="banner">
+    <div class="site-header__inner">
+      <a href="/" class="site-header__logo" aria-label="Boswell Digital Solutions — Home">
+        <img src="/src/assets/images/bds-logo.png" alt="BDS" class="site-header__logo-img">
+        <span>Boswell Digital Solutions</span>
+      </a>
+      <button class="site-header__menu-toggle" aria-label="Toggle navigation" aria-expanded="false" aria-controls="main-nav" id="menu-toggle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <nav class="site-header__nav" id="main-nav" aria-label="Main navigation">
+        <a href="/products.html" class="site-header__nav-link">Products</a>
+        <a href="/pricing.html" class="site-header__nav-link">Pricing</a>
+        <a href="/security.html" class="site-header__nav-link">Security</a>
+        <a href="/account.html" class="site-header__nav-link">Account</a>
+        <a href="/contact.html" class="site-header__nav-link">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main" class="content-page">
+    <div class="container">
+      <section class="page-hero forge-auth">
+        <div class="page-hero__eyebrow">Account</div>
+        <h1>Sign in to Boswell Digital Solutions.</h1>
+        <p class="page-hero__lede">Access your subscription, licenses, devices, and usage. New here? Create an account to get started.</p>
+      </section>
+
+      <section class="page-section forge-auth">
+        <article class="page-card">
+          <form class="page-form" data-login-form novalidate>
+            <fieldset class="forge-auth__modes" aria-label="Account action">
+              <label><input type="radio" name="auth-mode" value="signin" checked> Sign in</label>
+              <label><input type="radio" name="auth-mode" value="signup"> Create account</label>
+            </fieldset>
+            <div class="page-field">
+              <label for="login-email">Email</label>
+              <input id="login-email" name="email" type="email" autocomplete="email" required>
+            </div>
+            <div class="page-field">
+              <label for="login-password">Password</label>
+              <input id="login-password" name="password" type="password" autocomplete="current-password" minlength="8" required>
+            </div>
+            <p class="page-form__status" data-form-status role="status" aria-live="polite"></p>
+            <button type="submit" class="btn btn-primary" data-submit-button>Sign in</button>
+            <div class="forge-auth__divider">or</div>
+            <button type="button" class="btn btn-ghost" data-magic-button>Email me a magic link</button>
+          </form>
+          <noscript>
+            <p class="page-form__help">JavaScript is required to sign in.</p>
+          </noscript>
+        </article>
+      </section>
+    </div>
+  </main>
+
+  <footer class="site-footer" role="contentinfo">
+    <div class="site-footer__inner">
+      <div class="site-footer__bottom">
+        <span class="site-footer__copy">&copy; 2026 Boswell Digital Solutions LLC. All rights reserved.</span>
+        <span class="site-footer__sdvosb">SDVOSB</span>
+      </div>
+    </div>
+  </footer>
+
+  <script type="module" src="/src/js/site.js"></script>
+  <script type="module" src="/src/js/forge/login.js"></script>
+</body>
+</html>

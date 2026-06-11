@@ -1,0 +1,233 @@
+/* ============================================================
+   ForgeCustomer account surface — dashboard, auth, checkout
+   ============================================================ */
+
+.forge-section {
+  margin-top: var(--space-6);
+}
+
+.forge-section > h2 {
+  margin-bottom: var(--space-2);
+}
+
+.forge-section__intro {
+  max-width: 64ch;
+  margin-bottom: var(--space-3);
+  color: var(--text-secondary);
+}
+
+.forge-card {
+  padding: var(--space-3);
+  border: 1px solid var(--border-divider);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+/* Definition-style metadata (account identifiers) */
+.forge-meta {
+  display: grid;
+  gap: var(--space-2);
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  margin: 0;
+}
+
+.forge-meta dt {
+  color: var(--text-muted);
+  font-size: var(--fs-small);
+  font-family: var(--font-heading);
+}
+
+.forge-meta dd {
+  margin: 0.2rem 0 0;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+/* Generic list row used by subscriptions / licenses / installations */
+.forge-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.95rem 0;
+  border-bottom: 1px solid var(--border-divider);
+}
+
+.forge-row:last-child {
+  border-bottom: none;
+}
+
+.forge-row__main strong {
+  display: block;
+  color: var(--text-primary);
+  font-family: var(--font-heading);
+}
+
+.forge-row__sub {
+  margin-top: 0.2rem;
+  color: var(--text-secondary);
+  font-size: var(--fs-small);
+}
+
+.forge-row__side {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.forge-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-family: var(--font-heading);
+  letter-spacing: 0.04em;
+  text-transform: capitalize;
+  border: 1px solid transparent;
+}
+
+.forge-badge--ok {
+  color: #8ce0b8;
+  background: rgba(140, 224, 184, 0.1);
+  border-color: rgba(140, 224, 184, 0.35);
+}
+
+.forge-badge--bad {
+  color: #f6b0aa;
+  background: rgba(246, 176, 170, 0.1);
+  border-color: rgba(246, 176, 170, 0.35);
+}
+
+.forge-badge--neutral {
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--border-divider);
+}
+
+/* Usage meters */
+.forge-usage + .forge-usage {
+  margin-top: var(--space-3);
+}
+
+.forge-usage__head,
+.forge-usage__foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  color: var(--text-secondary);
+  font-size: var(--fs-small);
+}
+
+.forge-usage__head strong {
+  color: var(--text-primary);
+  font-family: var(--font-heading);
+}
+
+.forge-usage__bar {
+  height: 10px;
+  margin: 0.5rem 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.forge-usage__bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(249, 115, 22, 0.9), rgba(249, 115, 22, 0.6));
+}
+
+/* Banners (checkout status, deletion lifecycle) */
+.forge-banner {
+  padding: var(--space-3);
+  border: 1px solid var(--border-divider);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.forge-banner strong {
+  display: block;
+  margin-bottom: 0.4rem;
+  color: var(--text-primary);
+  font-family: var(--font-heading);
+  text-transform: capitalize;
+}
+
+.forge-banner--info {
+  border-color: rgba(59, 130, 246, 0.35);
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.forge-banner--warn {
+  border-color: rgba(249, 115, 22, 0.4);
+  background: rgba(249, 115, 22, 0.1);
+}
+
+.forge-empty {
+  color: var(--text-secondary);
+}
+
+.forge-section__error {
+  color: #f6b0aa;
+  font-size: var(--fs-small);
+}
+
+.forge-ref {
+  display: inline-block;
+  margin-left: 0.4rem;
+  color: var(--text-muted);
+}
+
+/* Status line states reused from page-form__status */
+[data-checkout-status][data-state="success"] {
+  color: #8ce0b8;
+}
+
+[data-checkout-status][data-state="pending"] {
+  color: var(--text-secondary);
+}
+
+/* Small button variant */
+.btn-small {
+  padding: 0.45rem 0.8rem;
+  font-size: var(--fs-small);
+}
+
+/* Auth (login) layout */
+.forge-auth {
+  max-width: 460px;
+  margin: 0 auto;
+}
+
+.forge-auth__modes {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: var(--space-3);
+}
+
+.forge-auth__modes label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--text-secondary);
+  font-size: var(--fs-small);
+}
+
+.forge-auth__divider {
+  margin: var(--space-3) 0;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: var(--fs-small);
+}
+
+.forge-plan__price {
+  margin: 0.25rem 0 0.75rem;
+  color: var(--text-primary);
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  font-weight: var(--fw-semibold);
+}

@@ -11,7 +11,8 @@
 | Meet SMITH | `meet-smith.html` | Live SMITH explainer framing it as the continuous authority HUD |
 | Architecture | `architecture.html` | Live public architecture explainer with Mermaid layered-system diagram |
 | White Papers | `white-papers/index.html` | Live public research archive with dated metadata and archive-style paper indexing |
-| Store | `store.html` | Live licensing surface with placeholder purchase coordination |
+| Store | `store.html` | Live licensing surface; Pro lane links to `pricing.html` |
+| Pricing | `pricing.html` | Live catalog + Stripe Checkout start (ForgeCustomer) |
 | Security | `security.html` | Live security posture and responsible-disclosure page |
 | About | `about.html` | Live company identity page |
 | Founder | `founder.html` | Live founder background and governance-philosophy page |
@@ -29,6 +30,20 @@
 | Refund | `legal/refund.html` | Live policy page |
 | EULA | `legal/eula.html` | Live multi-product software license page with Pro / ecosystem integration terms |
 | Ecosystem Terms | `legal/ecosystem.html` | Live optional ecosystem feature terms page |
+
+## Account Surface (ForgeCustomer)
+
+These pages render customer state owned by ForgeCustomer. They are `noindex` and
+require a Supabase session (except the dedicated state pages). See §9.
+
+| Page | Path | Status |
+|------|------|--------|
+| Sign in | `login.html` | Supabase login / sign-up / magic link |
+| Account dashboard | `account.html` | Subscription, licenses, installations/devices, usage, deletion controls |
+| Checkout success | `checkout/success.html` | Polls `GET /v1/subscriptions` until `grants_cloud: true` |
+| Checkout canceled | `checkout/cancel.html` | No-charge return page |
+| Account suspended | `account/suspended.html` | Landing page for `403 CUSTOMER_SUSPENDED` |
+| Account closed | `account/closed.html` | Landing page for closed/deleted accounts |
 
 ## Homepage Content Blocks
 
@@ -50,8 +65,10 @@ All public pages load the shared style sheets, including `hud.css`. Only the hom
 
 The site communicates several future capabilities that are not implemented here yet:
 
-- live Stripe payment links and automated fulfillment
 - dedicated product detail pages beyond AuthorForge
 - contextual HUD intelligence beyond static suggestions
+
+AuthorForge Pro checkout is now live through ForgeCustomer (Stripe-hosted),
+replacing the earlier placeholder-only commerce posture.
 
 That gap is acceptable as long as the marketing copy remains explicit about planned versus available functionality.

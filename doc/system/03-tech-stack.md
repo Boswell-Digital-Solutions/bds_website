@@ -6,9 +6,11 @@
 |------|------------|-------|
 | Public pages | HTML5 | Static multi-page site |
 | Styling | CSS | Shared tokens plus page-specific styles |
-| Interaction | Vanilla JavaScript | Shared `src/js/site.js` plus homepage HUD inline script |
-| Dev server | Bun + local TypeScript server | `bun run dev` executes `dev-server.ts` |
-| Package manager | Bun | Minimal `package.json` |
+| Interaction | Vanilla JavaScript | Shared `src/js/site.js`, homepage HUD inline script, plus `src/js/forge/*` ES modules for the account surface |
+| Auth | Supabase JS (CDN ESM) | Client-side login; access token forwarded to the BFF |
+| Customer/commerce API | ForgeCustomer (Rust/Axum) | Reached only through the server-side BFF proxy `server/forge.ts` (see §9) |
+| Dev server / BFF | Bun + local TypeScript server | `bun run dev` executes `dev-server.ts`, which also serves `/api/forge/*` and `/api/public-config` |
+| Package manager | Bun | Minimal `package.json`; no client bundler (modules load directly) |
 
 ## Design Stack
 
@@ -40,9 +42,11 @@ This stack is optimized for:
 - fast edits to copy and presentation
 - simple hosting on any static-capable platform
 
+Commerce and auth are now integrated through ForgeCustomer (server-side BFF) and
+Supabase login; see §7 and §9.
+
 It is not yet optimized for:
 
 - component reuse through templates
 - typed frontend logic
 - automated content generation pipelines
-- integrated commerce or auth backends
