@@ -3,6 +3,8 @@ import { access, readFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import { join, normalize } from "node:path";
 
+import { handleForgeApi } from "./server/forge.ts";
+
 const CONTENT_TYPES = new Map([
   [".css", "text/css; charset=utf-8"],
   [".gif", "image/gif"],
@@ -45,6 +47,13 @@ function contentTypeFor(path: string): string {
 const server = createServer(async (request, response) => {
   try {
     const url = new URL(request.url ?? "/", "http://127.0.0.1");
+
+    // Route ForgeCustomer (BFF) and public-config calls server-side before
+    // falling back to static file serving.
+    if (await handleForgeApi(request, response, url)) {
+      return;
+    }
+
     const filePath = resolvePath(url.pathname);
 
     try {

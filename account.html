@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Your Boswell Digital Solutions account: subscription, licenses, devices, and usage.">
+  <meta name="robots" content="noindex">
+  <title>Account — Boswell Digital Solutions</title>
+  <link rel="canonical" href="https://boswelldigitalsolutions.com/account.html">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/png" href="/src/assets/images/bds-logo.png">
+  <link rel="apple-touch-icon" href="/src/assets/images/bds-logo.png">
+  <meta name="theme-color" content="#0F172A">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/styles/global.css">
+  <link rel="stylesheet" href="/src/styles/header.css">
+  <link rel="stylesheet" href="/src/styles/footer.css">
+  <link rel="stylesheet" href="/src/styles/pages/site-pages.css">
+  <link rel="stylesheet" href="/src/styles/pages/account.css">
+</head>
+<body>
+  <a href="#main" class="skip-link">Skip to main content</a>
+  <header class="site-header" role="banner">
+    <div class="site-header__inner">
+      <a href="/" class="site-header__logo" aria-label="Boswell Digital Solutions — Home">
+        <img src="/src/assets/images/bds-logo.png" alt="BDS" class="site-header__logo-img">
+        <span>Boswell Digital Solutions</span>
+      </a>
+      <button class="site-header__menu-toggle" aria-label="Toggle navigation" aria-expanded="false" aria-controls="main-nav" id="menu-toggle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <nav class="site-header__nav" id="main-nav" aria-label="Main navigation">
+        <a href="/products.html" class="site-header__nav-link">Products</a>
+        <a href="/pricing.html" class="site-header__nav-link">Pricing</a>
+        <a href="/security.html" class="site-header__nav-link">Security</a>
+        <a href="/account.html" class="site-header__nav-link site-header__nav-link--active">Account</a>
+        <a href="/contact.html" class="site-header__nav-link">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main" class="content-page">
+    <div class="container">
+      <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <a href="/index.html">Home</a>
+        <span>/</span>
+        <span aria-current="page">Account</span>
+      </nav>
+
+      <section class="page-hero page-hero--split">
+        <div class="page-hero__content">
+          <div class="page-hero__eyebrow">Account</div>
+          <h1>Your account.</h1>
+          <p class="page-hero__lede">Subscription, licenses, devices, and usage — read directly from our customer service. AuthorForge writes usage; this page only displays it.</p>
+        </div>
+        <div class="page-hero__media">
+          <button type="button" class="btn btn-ghost" data-signout>Sign out</button>
+        </div>
+      </section>
+
+      <section class="forge-section" aria-labelledby="account-identity-heading">
+        <h2 id="account-identity-heading">Profile</h2>
+        <div class="forge-card" data-account><p class="forge-empty">Loading…</p></div>
+      </section>
+
+      <section class="forge-section" aria-labelledby="account-subscription-heading">
+        <h2 id="account-subscription-heading">Subscription</h2>
+        <p class="forge-section__intro">Cloud features depend on an active Pro subscription. <a href="/pricing.html">Compare plans.</a></p>
+        <div class="forge-card" data-subscriptions><p class="forge-empty">Loading…</p></div>
+      </section>
+
+      <section class="forge-section" aria-labelledby="account-licenses-heading">
+        <h2 id="account-licenses-heading">Licenses</h2>
+        <div class="forge-card" data-licenses><p class="forge-empty">Loading…</p></div>
+      </section>
+
+      <section class="forge-section" aria-labelledby="account-installations-heading">
+        <h2 id="account-installations-heading">Installations &amp; devices</h2>
+        <p class="forge-section__intro">Removing a device frees a slot on your license. Revoked devices can't be restored here — contact support.</p>
+        <div class="forge-card" data-installations><p class="forge-empty">Loading…</p></div>
+      </section>
+
+      <section class="forge-section" aria-labelledby="account-usage-heading">
+        <h2 id="account-usage-heading">Usage this period</h2>
+        <div class="forge-card" data-usage><p class="forge-empty">Loading…</p></div>
+      </section>
+
+      <section class="forge-section" aria-labelledby="account-deletion-heading">
+        <h2 id="account-deletion-heading">Data &amp; account deletion</h2>
+        <p class="forge-section__intro">Manage deletion of your account and associated data. See our <a href="/legal/privacy.html">Privacy Policy</a> for details.</p>
+        <div class="forge-card" data-deletion><p class="forge-empty">Loading…</p></div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="site-footer" role="contentinfo">
+    <div class="site-footer__inner">
+      <div class="site-footer__bottom">
+        <span class="site-footer__copy">&copy; 2026 Boswell Digital Solutions LLC. All rights reserved.</span>
+        <span class="site-footer__sdvosb">SDVOSB</span>
+      </div>
+    </div>
+  </footer>
+
+  <script type="module" src="/src/js/site.js"></script>
+  <script type="module" src="/src/js/forge/account.js"></script>
+  <script type="module" src="/src/js/forge/deletion.js"></script>
+</body>
+</html>

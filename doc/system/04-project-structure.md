@@ -5,9 +5,13 @@
 ```text
 bds_website/
 ├── AUDIT_REPORT.md
+├── .env.example
 ├── bun.lock
 ├── dev-server.ts
+├── server/
+│   └── forge.ts            # ForgeCustomer BFF proxy (allowlist + token forwarding)
 ├── about.html
+├── account.html
 ├── architecture.html
 ├── white-papers/
 │   ├── Forge_White_Paper_AI_Accountability.docx
@@ -28,10 +32,18 @@ bds_website/
 ├── out/
 │   └── stateforge.evidence.bundle.json
 ├── index.html
+├── login.html
+├── pricing.html
 ├── products.html
 ├── security.html
 ├── services.html
 ├── store.html
+├── checkout/
+│   ├── success.html        # polls subscriptions; never trusts the redirect
+│   └── cancel.html
+├── account/
+│   ├── suspended.html      # 403 CUSTOMER_SUSPENDED landing
+│   └── closed.html         # closed / deleted account landing
 ├── legal/
 │   ├── ecosystem.html
 │   ├── eula.html
@@ -50,7 +62,18 @@ bds_website/
 │   │       └── SMITH_icon.png
 │   ├── js/
 │   │   ├── contact-form.js
-│   │   └── site.js
+│   │   ├── site.js
+│   │   └── forge/              # ForgeCustomer client modules (see §9)
+│   │       ├── account.js
+│   │       ├── api.js
+│   │       ├── checkout-success.js
+│   │       ├── config.js
+│   │       ├── deletion.js
+│   │       ├── errors.js
+│   │       ├── login.js
+│   │       ├── pricing.js
+│   │       ├── session.js
+│   │       └── supabase.js
 │   └── styles/
 │       ├── footer.css
 │       ├── global.css
@@ -58,6 +81,7 @@ bds_website/
 │       ├── hud.css
 │       ├── tokens.css
 │       └── pages/
+│           ├── account.css
 │           ├── home.css
 │           ├── product-detail.css
 │           ├── products.css
@@ -86,6 +110,8 @@ bds_website/
 
 - `src/styles/` holds the actual reusable presentation system.
 - `src/js/` holds the small shared/browser-side behaviors for navigation and contact-form submission.
+- `src/js/forge/` holds the ForgeCustomer customer-surface client (auth, BFF calls, account/checkout/deletion controllers).
+- `server/forge.ts` is the server-side BFF proxy to ForgeCustomer, wired into `dev-server.ts`.
 - `src/assets/images/site/` holds shared public-page imagery such as the founder portrait and SMITH icon.
 - `docs/` contains planning and reference material that informed the implementation.
 - `white-papers/` holds the public white-paper landing page plus the current downloadable paper files.

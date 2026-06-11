@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="AuthorForge plans and pricing from Boswell Digital Solutions.">
+  <title>Pricing — Boswell Digital Solutions</title>
+  <link rel="canonical" href="https://boswelldigitalsolutions.com/pricing.html">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/png" href="/src/assets/images/bds-logo.png">
+  <link rel="apple-touch-icon" href="/src/assets/images/bds-logo.png">
+  <meta name="theme-color" content="#0F172A">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Boswell Digital Solutions">
+  <meta property="og:title" content="Pricing — Boswell Digital Solutions">
+  <meta property="og:description" content="AuthorForge plans and pricing.">
+  <meta property="og:url" content="https://boswelldigitalsolutions.com/pricing.html">
+  <meta property="og:image" content="https://boswelldigitalsolutions.com/src/assets/images/bds-logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/styles/global.css">
+  <link rel="stylesheet" href="/src/styles/header.css">
+  <link rel="stylesheet" href="/src/styles/footer.css">
+  <link rel="stylesheet" href="/src/styles/pages/site-pages.css">
+  <link rel="stylesheet" href="/src/styles/pages/account.css">
+</head>
+<body>
+  <a href="#main" class="skip-link">Skip to main content</a>
+  <header class="site-header" role="banner">
+    <div class="site-header__inner">
+      <a href="/" class="site-header__logo" aria-label="Boswell Digital Solutions — Home">
+        <img src="/src/assets/images/bds-logo.png" alt="BDS" class="site-header__logo-img">
+        <span>Boswell Digital Solutions</span>
+      </a>
+      <button class="site-header__menu-toggle" aria-label="Toggle navigation" aria-expanded="false" aria-controls="main-nav" id="menu-toggle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <nav class="site-header__nav" id="main-nav" aria-label="Main navigation">
+        <a href="/products.html" class="site-header__nav-link">Products</a>
+        <a href="/pricing.html" class="site-header__nav-link site-header__nav-link--active">Pricing</a>
+        <a href="/security.html" class="site-header__nav-link">Security</a>
+        <a href="/account.html" class="site-header__nav-link">Account</a>
+        <a href="/contact.html" class="site-header__nav-link">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main" class="content-page">
+    <div class="container">
+      <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <a href="/index.html">Home</a>
+        <span>/</span>
+        <span aria-current="page">Pricing</span>
+      </nav>
+
+      <section class="page-hero">
+        <div class="page-hero__eyebrow">AuthorForge</div>
+        <h1>Plans for every way you write.</h1>
+        <p class="page-hero__lede">The free baseline is included with AuthorForge. Upgrade to Pro for cloud-backed AI assistance. Checkout is handled by Stripe; your card never touches this site.</p>
+      </section>
+
+      <section class="page-section" aria-labelledby="pricing-plans-heading">
+        <div class="page-section__head">
+          <h2 id="pricing-plans-heading">AuthorForge plans</h2>
+        </div>
+        <p class="page-form__status" data-plans-status role="status" aria-live="polite"></p>
+        <div class="page-grid page-grid--2" data-plans></div>
+        <p class="page-note">Upgrading requires a signed-in account. After payment you'll return here while we confirm activation — entitlements activate from Stripe's webhook, not the redirect.</p>
+      </section>
+    </div>
+  </main>
+
+  <footer class="site-footer" role="contentinfo">
+    <div class="site-footer__inner">
+      <div class="site-footer__bottom">
+        <span class="site-footer__copy">&copy; 2026 Boswell Digital Solutions LLC. All rights reserved.</span>
+        <span class="site-footer__sdvosb">SDVOSB</span>
+      </div>
+    </div>
+  </footer>
+
+  <script type="module" src="/src/js/site.js"></script>
+  <script type="module" src="/src/js/forge/pricing.js"></script>
+</body>
+</html>
