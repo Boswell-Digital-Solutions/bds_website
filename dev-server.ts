@@ -1,147 +1,170 @@
-import { constants } from "node:fs";
 import { access, readFile } from "node:fs/promises";
-import { createServer, type ServerResponse } from "node:http";
-import { join, normalize, sep } from "node:path";
+import { createServer } from "node:http";
 
 import { handleForgeApi } from "./server/forge.ts";
-
-const CONTENT_TYPES = new Map([
-  [".css", "text/css; charset=utf-8"],
-  [".docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"],
-  [".gif", "image/gif"],
-  [".html", "text/html; charset=utf-8"],
-  [".ico", "image/x-icon"],
-  [".jpeg", "image/jpeg"],
-  [".jpg", "image/jpeg"],
-  [".js", "text/javascript; charset=utf-8"],
-  [".json", "application/json; charset=utf-8"],
-  [".md", "text/markdown; charset=utf-8"],
-  [".pdf", "application/pdf"],
-  [".png", "image/png"],
-  [".svg", "image/svg+xml"],
-  [".txt", "text/plain; charset=utf-8"],
-  [".webp", "image/webp"],
-  [".woff", "font/woff"],
-  [".woff2", "font/woff2"],
-]);
-
-// Only these paths are servable. The repo also contains the server code,
-// internal system docs, QC tooling, and .git — none of which may ever be
-// exposed, so anything not listed here is refused (fail-closed).
-const PUBLIC_DIRS = new Set(["src", "legal", "account", "checkout", "white-papers"]);
-const PUBLIC_ROOT_FILES = new Set(["favicon.svg", "robots.txt"]);
-
-// Assets are not content-hashed, so keep their cache lifetime short enough
-// that a deploy propagates within the hour. HTML always revalidates.
-const ASSET_CACHE_CONTROL = "public, max-age=3600";
-const HTML_CACHE_CONTROL = "no-cache";
+import { handleIntakeApi } from "./server/intake.ts";
+import { resolvePublicFile } from "./server/security/publication.ts";
+import {
+  HttpError,
+  LIMITS,
+  correlationIdFrom,
+  errorPayload,
+  handleHttpError,
+  logSecurityEvent,
+  readLimitedBody,
+  readinessStatus,
+  securityHeaders,
+  sendJson,
+  sendText,
+  validateAllowedHost,
+  validateEdgeToken,
+  validateRequestEnvelope,
+} from "./server/security/http.ts";
 
 const rootDir = process.cwd();
-// Render injects PORT and requires binding 0.0.0.0; both default to sensible
-// values for local dev. Set HOST=127.0.0.1 to keep a local run off the LAN.
+// Render injects PORT and requires binding 0.0.0.0. Set HOST=127.0.0.1 for
+// local-only development runs.
 const port = Number.parseInt(process.env.PORT ?? "", 10) || 3000;
-const host = process.env.HOST ?? "0.0.0.0";
-
-/** Maps a request path to a servable file, or null when it is not public. */
-function resolvePath(pathname: string): string | null {
-  // Directory-style URLs (/, /white-papers/) serve their index.html.
-  const indexedPath = pathname.endsWith("/") ? `${pathname}index.html` : pathname;
-  const decodedPath = decodeURIComponent(indexedPath);
-  const safePath = normalize(decodedPath)
-    .replace(/^(\.\.(\/|\\|$))+/, "")
-    .replace(/^[/\\]+/, "");
-
-  const segments = safePath.split(/[/\\]/);
-  const isPublic =
-    segments.length === 1
-      ? segments[0].endsWith(".html") || PUBLIC_ROOT_FILES.has(segments[0])
-      : PUBLIC_DIRS.has(segments[0]);
-  if (!isPublic) {
-    return null;
-  }
-
-  const candidate = join(rootDir, safePath);
-  if (!candidate.startsWith(rootDir + sep)) {
-    return null;
-  }
-
-  return candidate;
-}
-
-function contentTypeFor(path: string): string {
-  const extension = path.slice(path.lastIndexOf(".")).toLowerCase();
-  return CONTENT_TYPES.get(extension) ?? "application/octet-stream";
-}
-
-function baseHeaders(contentType: string): Record<string, string> {
-  return {
-    "content-type": contentType,
-    "x-content-type-options": "nosniff",
-    "x-frame-options": "DENY",
-    "referrer-policy": "strict-origin-when-cross-origin",
-  };
-}
-
-function sendNotFound(response: ServerResponse): void {
-  response.writeHead(404, baseHeaders("text/plain; charset=utf-8"));
-  response.end("Not found");
-}
+const listenHost = process.env.HOST ?? "0.0.0.0";
 
 const server = createServer(async (request, response) => {
-  try {
-    const url = new URL(request.url ?? "/", "http://127.0.0.1");
+  const correlationId = correlationIdFrom(request);
 
-    // Liveness probe for Render health checks and uptime monitors.
-    if (url.pathname === "/healthz") {
-      response.writeHead(200, baseHeaders("text/plain; charset=utf-8"));
-      response.end("ok");
+  try {
+    validateRequestEnvelope(request);
+    validateAllowedHost(request);
+    validateEdgeToken(request);
+
+    const requestHost = request.headers.host ?? "127.0.0.1";
+    const url = new URL(request.url ?? "/", `http://${requestHost}`);
+
+    if (url.pathname === "/healthz" || url.pathname === "/readyz") {
+      handleHealth(request.method ?? "GET", response, url.pathname, correlationId);
       return;
     }
 
-    // Route ForgeCustomer (BFF) and public-config calls server-side before
-    // falling back to static file serving.
+    if (url.pathname === "/api/security/csp-report") {
+      await handleCspReport(request, response, correlationId);
+      return;
+    }
+
+    // Route BFF calls server-side before falling back to static file serving.
     if (await handleForgeApi(request, response, url)) {
+      return;
+    }
+    if (await handleIntakeApi(request, response, url)) {
       return;
     }
 
     const method = (request.method ?? "GET").toUpperCase();
     if (method !== "GET" && method !== "HEAD") {
-      response.writeHead(405, {
-        ...baseHeaders("text/plain; charset=utf-8"),
-        allow: "GET, HEAD",
-      });
-      response.end("Method not allowed");
+      sendJson(
+        response,
+        405,
+        errorPayload("METHOD_NOT_ALLOWED", "Method not allowed.", correlationId),
+        { allow: "GET, HEAD" }
+      );
       return;
     }
 
-    const filePath = resolvePath(url.pathname);
-    if (filePath === null) {
-      sendNotFound(response);
-      return;
-    }
+    const file = resolvePublicFile(rootDir, url.pathname);
 
     try {
-      await access(filePath, constants.F_OK);
+      await access(file.absolutePath);
     } catch {
-      sendNotFound(response);
+      sendText(response, 404, "Not found");
       return;
     }
 
-    const body = await readFile(filePath);
-    const contentType = contentTypeFor(filePath);
+    const body = await readFile(file.absolutePath);
     response.writeHead(200, {
-      ...baseHeaders(contentType),
-      "cache-control": contentType.startsWith("text/html")
-        ? HTML_CACHE_CONTROL
-        : ASSET_CACHE_CONTROL,
-      "content-length": String(body.byteLength),
+      ...securityHeaders({
+        "cache-control": file.cacheControl,
+        "content-type": file.contentType,
+        "content-length": String(body.byteLength),
+      }),
     });
     response.end(method === "HEAD" ? undefined : body);
-  } catch {
-    sendNotFound(response);
+  } catch (error) {
+    if (!handleHttpError(response, error, correlationId)) {
+      sendJson(
+        response,
+        500,
+        errorPayload("INTERNAL_ERROR", "The request could not be processed.", correlationId)
+      );
+    }
   }
 });
 
-server.listen(port, host, () => {
-  console.log(`BDS website server listening on http://${host}:${port}`);
+server.requestTimeout = LIMITS.totalRequestDeadlineMs;
+server.headersTimeout = Math.min(10_000, LIMITS.totalRequestDeadlineMs);
+server.maxHeadersCount = LIMITS.headerCount;
+
+server.listen(port, listenHost, () => {
+  console.log(`BDS website server listening on http://${listenHost}:${port}`);
 });
+
+function handleHealth(
+  method: string,
+  response: import("node:http").ServerResponse,
+  pathname: string,
+  correlationId: string
+): void {
+  const normalizedMethod = method.toUpperCase();
+  if (normalizedMethod !== "GET" && normalizedMethod !== "HEAD") {
+    sendJson(
+      response,
+      405,
+      errorPayload("METHOD_NOT_ALLOWED", "Method not allowed.", correlationId),
+      { allow: "GET, HEAD" }
+    );
+    return;
+  }
+
+  if (pathname === "/healthz") {
+    sendJson(response, 200, { status: "ok", correlation_id: correlationId });
+    return;
+  }
+
+  const readiness = readinessStatus();
+  sendJson(
+    response,
+    readiness.ready ? 200 : 503,
+    {
+      status: readiness.ready ? "ready" : "degraded",
+      checks: readiness.missing.length === 0 ? ["configured"] : ["configuration_required"],
+      correlation_id: correlationId,
+    }
+  );
+}
+
+async function handleCspReport(
+  request: import("node:http").IncomingMessage,
+  response: import("node:http").ServerResponse,
+  correlationId: string
+): Promise<void> {
+  const method = (request.method ?? "GET").toUpperCase();
+  if (method !== "POST") {
+    sendJson(
+      response,
+      405,
+      errorPayload("METHOD_NOT_ALLOWED", "Method not allowed.", correlationId),
+      { allow: "POST" }
+    );
+    return;
+  }
+
+  try {
+    const body = await readLimitedBody(request, LIMITS.defaultJsonBodyBytes);
+    logSecurityEvent("info", "bds.csp.report.received", {
+      correlation_id: correlationId,
+      bytes: body.length,
+    });
+    response.writeHead(204, securityHeaders({ "cache-control": "no-store" }));
+    response.end();
+  } catch (error) {
+    if (!handleHttpError(response, error, correlationId)) {
+      throw new HttpError(400, "CSP_REPORT_INVALID", "CSP report could not be read.");
+    }
+  }
+}

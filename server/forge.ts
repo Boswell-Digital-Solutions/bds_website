@@ -1,127 +1,207 @@
 /**
  * ForgeCustomer BFF (backend-for-frontend) proxy.
  *
- * The public website is a pure *customer-surface client*: it renders state that
- * ForgeCustomer owns and never holds commercial truth itself. ForgeCustomer
- * currently exposes no CORS layer, so the browser must never call it directly.
- * Every ForgeCustomer call is routed through this server, which forwards the
- * signed-in user's own Supabase access token (`Authorization: Bearer <jwt>`)
- * per request.
- *
- * Hard rules enforced here:
- *   1. Only the public *customer* endpoints below are reachable. `/v1/admin/*`
- *      (Forge Command's surface) and anything not on the allowlist is rejected.
- *      No service-role key, Stripe secret, or operator credential is ever read
- *      or forwarded by this proxy.
- *   2. Responses are returned with `Cache-Control: no-store` so one user's
- *      response is never cached for another.
- *
- * Configuration (server-side only):
- *   FORGECUSTOMER_API_BASE   e.g. https://api.forgecustomer.example
- *   SUPABASE_URL             reused for login (public)
- *   SUPABASE_ANON_KEY        reused for login (public)
+ * The website is a customer-surface client. ForgeCustomer owns commercial
+ * truth, and this server is the only browser-reachable bridge to that surface.
+ * Every route below is an explicit policy with bounded input, same-origin
+ * rules, idempotency rules, and CSSA shadow egress evidence.
  */
 
-import { randomUUID } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
+
+import { governedFetchText } from "./security/egress.ts";
+import {
+  HttpError,
+  LIMITS,
+  correlationIdFrom,
+  errorPayload,
+  handleHttpError,
+  joinBaseUrl,
+  normalizeBearerAuthorization,
+  normalizeIdempotencyKey,
+  parseConfiguredBaseUrl,
+  parseJsonObject,
+  readLimitedBody,
+  securityHeaders,
+  sendJson,
+  singletonHeader,
+  validateJsonContentType,
+  validateNoDuplicateQuery,
+  validateSameOrigin,
+} from "./security/http.ts";
 
 const API_PREFIX = "/api/forge";
 
-interface AllowEntry {
+interface RoutePolicy {
+  auth: "public" | "customer";
+  cssaAction: string;
+  dataClass: "R0" | "R1" | "R2" | "R3";
+  id: string;
+  idempotency: "forbidden" | "optional" | "required";
+  maxBodyBytes: number;
   method: string;
-  /** ForgeCustomer path template, e.g. "/v1/installations/:id/deactivate". */
-  template: string;
-  /** Public catalog endpoints do not require the user's token. */
-  isPublic?: boolean;
-  /** Honour an inbound Idempotency-Key header (checkout). */
-  forwardIdempotencyKey?: boolean;
+  originRequired: boolean;
   regex: RegExp;
+  surface: string;
+  template: string;
+  validateBody?: (input: Record<string, unknown>) => Record<string, unknown>;
 }
 
 function compile(template: string): RegExp {
-  // Convert ":id" segments into a constrained path-segment match.
   const pattern = template
     .split("/")
-    .map((segment) =>
-      segment.startsWith(":") ? "([^/]+)" : segment.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-    )
+    .map((segment) => {
+      if (segment === ":id") {
+        return "([A-Za-z0-9._:-]{1,128})";
+      }
+      return segment.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    })
     .join("/");
   return new RegExp(`^${pattern}$`);
 }
 
-function entry(
+function policy(
   method: string,
   template: string,
-  options: { isPublic?: boolean; forwardIdempotencyKey?: boolean } = {}
-): AllowEntry {
+  options: Omit<RoutePolicy, "method" | "template" | "regex">
+): RoutePolicy {
   return { method, template, regex: compile(template), ...options };
 }
 
-/**
- * The complete set of ForgeCustomer endpoints the website is permitted to reach.
- * Anything not listed here (notably `/v1/admin/*`) is refused before any
- * upstream request is made.
- */
-const ALLOWLIST: AllowEntry[] = [
-  // --- Session bootstrap -------------------------------------------------
-  entry("POST", "/v1/account/provision"),
+const ROUTES: RoutePolicy[] = [
+  policy("POST", "/v1/account/provision", {
+    auth: "customer",
+    cssaAction: "account.provision",
+    dataClass: "R2",
+    id: "forge.account.provision",
+    idempotency: "optional",
+    maxBodyBytes: LIMITS.provisionBodyBytes,
+    originRequired: true,
+    surface: "forgecustomer.account",
+    validateBody: validateProvision,
+  }),
 
-  // --- Public catalog (no token required) --------------------------------
-  entry("GET", "/v1/products", { isPublic: true }),
-  entry("GET", "/v1/plans", { isPublic: true }),
-  entry("GET", "/v1/entitlements/keys", { isPublic: true }),
+  policy("GET", "/v1/products", {
+    auth: "public",
+    cssaAction: "catalog.products.read",
+    dataClass: "R0",
+    id: "forge.catalog.products",
+    idempotency: "forbidden",
+    maxBodyBytes: 0,
+    originRequired: false,
+    surface: "forgecustomer.catalog",
+  }),
+  policy("GET", "/v1/plans", {
+    auth: "public",
+    cssaAction: "catalog.plans.read",
+    dataClass: "R0",
+    id: "forge.catalog.plans",
+    idempotency: "forbidden",
+    maxBodyBytes: 0,
+    originRequired: false,
+    surface: "forgecustomer.catalog",
+  }),
+  policy("GET", "/v1/entitlements/keys", {
+    auth: "public",
+    cssaAction: "catalog.entitlement_keys.read",
+    dataClass: "R0",
+    id: "forge.catalog.entitlement_keys",
+    idempotency: "forbidden",
+    maxBodyBytes: 0,
+    originRequired: false,
+    surface: "forgecustomer.catalog",
+  }),
 
-  // --- Checkout ----------------------------------------------------------
-  entry("POST", "/v1/checkout", { forwardIdempotencyKey: true }),
+  policy("POST", "/v1/checkout", {
+    auth: "customer",
+    cssaAction: "checkout.create",
+    dataClass: "R2",
+    id: "forge.checkout.create",
+    idempotency: "required",
+    maxBodyBytes: LIMITS.checkoutBodyBytes,
+    originRequired: true,
+    surface: "forgecustomer.checkout",
+    validateBody: validateCheckout,
+  }),
 
-  // --- Account dashboard (reads) -----------------------------------------
-  entry("GET", "/v1/account"),
-  entry("GET", "/v1/subscriptions"),
-  entry("GET", "/v1/licenses"),
-  entry("GET", "/v1/installations"),
-  entry("GET", "/v1/devices"),
-  entry("GET", "/v1/usage/current"),
-  entry("GET", "/v1/entitlements/current"),
+  policy("GET", "/v1/account", readPolicy("account.read", "forge.account.read", "forgecustomer.account")),
+  policy(
+    "GET",
+    "/v1/subscriptions",
+    readPolicy("subscription.read", "forge.subscription.read", "forgecustomer.account")
+  ),
+  policy("GET", "/v1/licenses", readPolicy("license.read", "forge.license.read", "forgecustomer.account")),
+  policy(
+    "GET",
+    "/v1/installations",
+    readPolicy("installation.read", "forge.installation.read", "forgecustomer.devices")
+  ),
+  policy("GET", "/v1/devices", readPolicy("installation.read", "forge.device.read", "forgecustomer.devices")),
+  policy("GET", "/v1/usage/current", readPolicy("usage.read", "forge.usage.current", "forgecustomer.usage")),
+  policy(
+    "GET",
+    "/v1/entitlements/current",
+    readPolicy("entitlement.read", "forge.entitlement.current", "forgecustomer.account")
+  ),
 
-  // --- Installation / device management ----------------------------------
-  entry("POST", "/v1/installations/:id/deactivate"),
+  policy("POST", "/v1/installations/:id/deactivate", {
+    auth: "customer",
+    cssaAction: "installation.deactivate",
+    dataClass: "R2",
+    id: "forge.installation.deactivate",
+    idempotency: "required",
+    maxBodyBytes: 0,
+    originRequired: true,
+    surface: "forgecustomer.devices",
+  }),
 
-  // --- Account deletion lifecycle ----------------------------------------
-  entry("POST", "/v1/account/deletion-request"),
-  entry("GET", "/v1/account/deletion-request"),
-  entry("POST", "/v1/account/deletion-request/cancel"),
+  policy("POST", "/v1/account/deletion-request", {
+    auth: "customer",
+    cssaAction: "deletion.request",
+    dataClass: "R3",
+    id: "forge.deletion.request",
+    idempotency: "required",
+    maxBodyBytes: LIMITS.deletionBodyBytes,
+    originRequired: true,
+    surface: "forgecustomer.deletion",
+    validateBody: validateDeletionRequest,
+  }),
+  policy(
+    "GET",
+    "/v1/account/deletion-request",
+    readPolicy("deletion.read", "forge.deletion.read", "forgecustomer.deletion")
+  ),
+  policy("POST", "/v1/account/deletion-request/cancel", {
+    auth: "customer",
+    cssaAction: "deletion.cancel",
+    dataClass: "R3",
+    id: "forge.deletion.cancel",
+    idempotency: "required",
+    maxBodyBytes: 0,
+    originRequired: true,
+    surface: "forgecustomer.deletion",
+  }),
 ];
 
-function findEntry(method: string, path: string): AllowEntry | undefined {
-  return ALLOWLIST.find((item) => item.method === method && item.regex.test(path));
+function readPolicy(
+  cssaAction: string,
+  id: string,
+  surface: string
+): Omit<RoutePolicy, "method" | "template" | "regex"> {
+  return {
+    auth: "customer",
+    cssaAction,
+    dataClass: "R2",
+    id,
+    idempotency: "forbidden",
+    maxBodyBytes: 0,
+    originRequired: false,
+    surface,
+  };
 }
 
-/** ForgeCustomer's error contract shape: { error: { code, message, correlation_id, details } }. */
-function errorPayload(
-  code: string,
-  message: string,
-  correlationId: string,
-  details: unknown = null
-) {
-  return { error: { code, message, correlation_id: correlationId, details } };
-}
-
-function sendJson(response: ServerResponse, status: number, body: unknown): void {
-  const payload = JSON.stringify(body);
-  response.writeHead(status, {
-    "content-type": "application/json; charset=utf-8",
-    // Never cache one user's response for another (hard rule 2).
-    "cache-control": "no-store",
-  });
-  response.end(payload);
-}
-
-async function readBody(request: IncomingMessage): Promise<Buffer> {
-  const chunks: Buffer[] = [];
-  for await (const chunk of request) {
-    chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
-  }
-  return Buffer.concat(chunks);
+function findPolicy(method: string, path: string): RoutePolicy | undefined {
+  return ROUTES.find((item) => item.method === method && item.regex.test(path));
 }
 
 /** Public, browser-safe configuration. Contains no secrets. */
@@ -133,10 +213,6 @@ function publicConfig() {
   };
 }
 
-/**
- * Handle a request if it targets the BFF surface. Returns true when handled so
- * the static file server can ignore it.
- */
 export async function handleForgeApi(
   request: IncomingMessage,
   response: ServerResponse,
@@ -144,118 +220,141 @@ export async function handleForgeApi(
 ): Promise<boolean> {
   const { pathname } = url;
 
-  // Public, non-secret config for the browser (Supabase login uses this).
   if (pathname === "/api/public-config") {
-    if (request.method !== "GET") {
-      sendJson(response, 405, errorPayload("METHOD_NOT_ALLOWED", "Method not allowed.", randomUUID()));
-      return true;
-    }
-    sendJson(response, 200, publicConfig());
-    return true;
+    return handlePublicConfig(request, response);
   }
 
   if (!pathname.startsWith(`${API_PREFIX}/`)) {
     return false;
   }
 
-  const correlationId = randomUUID();
+  const correlationId = correlationIdFrom(request);
   const method = (request.method ?? "GET").toUpperCase();
-  const forgePath = pathname.slice(API_PREFIX.length); // e.g. "/v1/subscriptions"
+  const forgePath = pathname.slice(API_PREFIX.length);
 
-  const matched = findEntry(method, forgePath);
-  if (!matched) {
-    // Not on the allowlist (covers /v1/admin/* and every operator surface).
-    sendJson(
-      response,
-      404,
-      errorPayload(
-        "NOT_FOUND",
-        "This endpoint is not available through the website.",
-        correlationId
-      )
-    );
-    return true;
-  }
-
-  const apiBase = process.env.FORGECUSTOMER_API_BASE;
-  if (!apiBase) {
-    console.error(
-      `[forge] FORGECUSTOMER_API_BASE is not configured. correlation_id=${correlationId} path=${forgePath}`
-    );
-    sendJson(
-      response,
-      503,
-      errorPayload(
-        "INTEGRATION_UNCONFIGURED",
-        "The customer service is not configured for this environment.",
-        correlationId
-      )
-    );
-    return true;
-  }
-
-  // Authorization: forward the user's own Supabase access token. Required for
-  // every endpoint except the public catalog.
-  const authHeader = request.headers["authorization"];
-  if (!matched.isPublic && !authHeader) {
-    sendJson(
-      response,
-      401,
-      errorPayload("UNAUTHENTICATED", "Sign in to continue.", correlationId)
-    );
-    return true;
-  }
-
-  const upstreamHeaders: Record<string, string> = {
-    accept: "application/json",
-  };
-  if (authHeader) {
-    upstreamHeaders["authorization"] = Array.isArray(authHeader) ? authHeader[0] : authHeader;
-  }
-  if (matched.forwardIdempotencyKey) {
-    const key = request.headers["idempotency-key"];
-    if (typeof key === "string" && key) {
-      upstreamHeaders["idempotency-key"] = key;
+  try {
+    if (/%2f|%5c/i.test(forgePath) || forgePath.includes("\\") || forgePath.includes("..")) {
+      throw new HttpError(404, "NOT_FOUND", "This endpoint is not available through the website.");
     }
-  }
 
-  let body: Buffer | undefined;
-  if (method === "POST" || method === "PUT" || method === "PATCH") {
-    body = await readBody(request);
-    if (body.length > 0) {
+    const route = findPolicy(method, forgePath);
+    if (!route) {
+      throw new HttpError(404, "NOT_FOUND", "This endpoint is not available through the website.");
+    }
+
+    validateNoDuplicateQuery(url);
+    if (route.originRequired) {
+      validateSameOrigin(request);
+    }
+
+    const idempotencyKey = normalizeIdempotencyKey(
+      singletonHeader(request.headers, "idempotency-key"),
+      route.idempotency
+    );
+
+    const upstreamHeaders: Record<string, string> = {
+      accept: "application/json",
+      "x-correlation-id": correlationId,
+    };
+
+    const authHeader = singletonHeader(request.headers, "authorization");
+    if (route.auth === "customer") {
+      upstreamHeaders.authorization = normalizeBearerAuthorization(authHeader);
+    } else if (authHeader) {
+      throw new HttpError(400, "AUTHORIZATION_FORBIDDEN", "Authorization is not allowed for this route.");
+    }
+
+    if (idempotencyKey) {
+      upstreamHeaders["idempotency-key"] = idempotencyKey;
+    }
+
+    const body = await readAndValidateRouteBody(request, route);
+    if (body) {
       upstreamHeaders["content-type"] = "application/json";
     }
-  }
 
-  const target = `${apiBase.replace(/\/+$/, "")}${forgePath}${url.search}`;
-
-  let upstream: Response;
-  try {
-    upstream = await fetch(target, {
-      method,
-      headers: upstreamHeaders,
-      body: body && body.length > 0 ? body : undefined,
-    });
-  } catch (cause) {
-    console.error(
-      `[forge] upstream request failed. correlation_id=${correlationId} path=${forgePath}`,
-      cause
+    const apiBase = parseConfiguredBaseUrl(
+      process.env.FORGECUSTOMER_API_BASE,
+      "FORGECUSTOMER_API_BASE",
+      "FORGECUSTOMER_ALLOWED_HOSTS"
     );
+    if (!apiBase) {
+      throw new HttpError(503, "INTEGRATION_UNCONFIGURED", "The customer service is not configured.");
+    }
+    if (apiBase.pathname !== "/" && apiBase.pathname !== "") {
+      throw new HttpError(503, "FORGECUSTOMER_API_BASE_INVALID", "FORGECUSTOMER_API_BASE must not include a path.");
+    }
+
+    const target = joinBaseUrl(apiBase, forgePath, url.search);
+    const upstream = await governedFetchText({
+      action: route.cssaAction,
+      body,
+      correlationId,
+      dataClass: route.dataClass,
+      destination: target,
+      headers: upstreamHeaders,
+      maxResponseBytes: LIMITS.upstreamResponseBytes,
+      method,
+      surface: route.surface,
+      timeoutMs: LIMITS.upstreamDeadlineMs,
+    });
+
+    writeUpstreamResponse(response, upstream.response, upstream.text, correlationId);
+    return true;
+  } catch (error) {
+    if (!handleHttpError(response, error, correlationId)) {
+      sendJson(
+        response,
+        500,
+        errorPayload("FORGE_PROXY_FAILED", "The customer request could not be processed.", correlationId)
+      );
+    }
+    return true;
+  }
+}
+
+function handlePublicConfig(request: IncomingMessage, response: ServerResponse): boolean {
+  const correlationId = correlationIdFrom(request);
+  const method = (request.method ?? "GET").toUpperCase();
+  if (method !== "GET") {
     sendJson(
       response,
-      502,
-      errorPayload(
-        "UPSTREAM_UNAVAILABLE",
-        "The customer service could not be reached. Please try again.",
-        correlationId
-      )
+      405,
+      errorPayload("METHOD_NOT_ALLOWED", "Method not allowed.", correlationId),
+      { allow: "GET" }
     );
     return true;
   }
+  sendJson(response, 200, publicConfig());
+  return true;
+}
 
-  const text = await upstream.text();
+async function readAndValidateRouteBody(
+  request: IncomingMessage,
+  route: RoutePolicy
+): Promise<string | undefined> {
+  if (route.maxBodyBytes === 0) {
+    const contentLength = singletonHeader(request.headers, "content-length");
+    const transferEncoding = singletonHeader(request.headers, "transfer-encoding");
+    if ((contentLength && contentLength !== "0") || transferEncoding) {
+      throw new HttpError(400, "BODY_NOT_ALLOWED", "This route does not accept a request body.");
+    }
+    return undefined;
+  }
 
-  // Log the correlation_id of every upstream error so support can trace it.
+  validateJsonContentType(request);
+  const rawBody = await readLimitedBody(request, route.maxBodyBytes);
+  const parsed = parseJsonObject(rawBody);
+  const validated = route.validateBody ? route.validateBody(parsed) : parsed;
+  return JSON.stringify(validated);
+}
+
+function writeUpstreamResponse(
+  response: ServerResponse,
+  upstream: Response,
+  text: string,
+  correlationId: string
+): void {
   if (!upstream.ok) {
     let upstreamCorrelation = "";
     let upstreamCode = "";
@@ -264,18 +363,134 @@ export async function handleForgeApi(
       upstreamCorrelation = parsed?.error?.correlation_id ?? "";
       upstreamCode = parsed?.error?.code ?? "";
     } catch {
-      // Non-JSON error body; fall through with what we have.
+      // Normalize non-JSON errors below.
     }
     console.error(
       `[forge] upstream error status=${upstream.status} code=${upstreamCode || "?"} ` +
-        `correlation_id=${upstreamCorrelation || correlationId} path=${forgePath}`
+        `correlation_id=${upstreamCorrelation || correlationId}`
     );
   }
 
+  let body = text;
+  if (text) {
+    try {
+      JSON.parse(text);
+    } catch {
+      body = JSON.stringify(
+        errorPayload("UPSTREAM_RESPONSE_INVALID", "The customer service returned an invalid response.", correlationId)
+      );
+      response.writeHead(502, {
+        ...securityHeaders({
+          "cache-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+        }),
+      });
+      response.end(body);
+      return;
+    }
+  }
+
   response.writeHead(upstream.status, {
-    "content-type": upstream.headers.get("content-type") ?? "application/json; charset=utf-8",
-    "cache-control": "no-store",
+    ...securityHeaders({
+      "cache-control": "no-store",
+      "content-type": upstream.headers.get("content-type") ?? "application/json; charset=utf-8",
+      "x-correlation-id": correlationId,
+    }),
   });
-  response.end(text);
-  return true;
+  response.end(body);
+}
+
+function validateProvision(input: Record<string, unknown>): Record<string, unknown> {
+  rejectUnknown(input, new Set(["timezone"]));
+  const output: Record<string, unknown> = {};
+  if (input.timezone !== undefined) {
+    if (
+      typeof input.timezone !== "string" ||
+      input.timezone.length > 64 ||
+      !/^[A-Za-z_]+(?:\/[A-Za-z0-9_+-]+)+$/.test(input.timezone)
+    ) {
+      throw new HttpError(400, "INVALID_TIMEZONE", "timezone is invalid.");
+    }
+    output.timezone = input.timezone;
+  }
+  return output;
+}
+
+function validateCheckout(input: Record<string, unknown>): Record<string, unknown> {
+  rejectUnknown(input, new Set(["plan_key", "success_url", "cancel_url"]));
+  const planKey = requiredString(input.plan_key, "plan_key", 1, 128, /^[A-Za-z0-9._:-]+$/);
+  const successUrl = validateSameOriginRedirect(input.success_url, "success_url", "/checkout/success.html");
+  const cancelUrl = validateSameOriginRedirect(input.cancel_url, "cancel_url", "/checkout/cancel.html");
+  return { plan_key: planKey, success_url: successUrl, cancel_url: cancelUrl };
+}
+
+function validateDeletionRequest(input: Record<string, unknown>): Record<string, unknown> {
+  rejectUnknown(input, new Set(["reason"]));
+  if (input.reason === undefined || input.reason === "") {
+    return {};
+  }
+  const reason = requiredString(input.reason, "reason", 1, 5000);
+  return { reason };
+}
+
+function rejectUnknown(input: Record<string, unknown>, allowed: Set<string>): void {
+  for (const key of Object.keys(input)) {
+    if (!allowed.has(key)) {
+      throw new HttpError(400, "UNKNOWN_FIELD", "Request body contains an unknown field.");
+    }
+  }
+}
+
+function requiredString(
+  value: unknown,
+  field: string,
+  minLength: number,
+  maxLength: number,
+  pattern?: RegExp
+): string {
+  if (typeof value !== "string") {
+    throw new HttpError(400, "INVALID_FIELD", `${field} is required.`);
+  }
+  const normalized = value.trim();
+  if (
+    normalized.length < minLength ||
+    normalized.length > maxLength ||
+    /[\u0000-\u001f]/.test(normalized) ||
+    (pattern && !pattern.test(normalized))
+  ) {
+    throw new HttpError(400, "INVALID_FIELD", `${field} is invalid.`);
+  }
+  return normalized;
+}
+
+function validateSameOriginRedirect(value: unknown, field: string, expectedPath: string): string {
+  const raw = requiredString(value, field, 1, 512);
+  if (raw.startsWith("//")) {
+    throw new HttpError(400, "INVALID_REDIRECT", `${field} is invalid.`);
+  }
+
+  let parsed: URL;
+  try {
+    parsed = raw.startsWith("/") ? new URL(raw, "https://boswelldigitalsolutions.com") : new URL(raw);
+  } catch {
+    throw new HttpError(400, "INVALID_REDIRECT", `${field} is invalid.`);
+  }
+
+  const allowedOrigin = new Set([
+    "https://boswelldigitalsolutions.com",
+    "https://www.boswelldigitalsolutions.com",
+    "http://127.0.0.1",
+    "http://localhost",
+  ]);
+  const isLocalOrigin =
+    (parsed.hostname === "127.0.0.1" || parsed.hostname === "localhost") &&
+    (parsed.protocol === "http:" || parsed.protocol === "https:");
+
+  if ((!allowedOrigin.has(parsed.origin) && !isLocalOrigin) || parsed.pathname !== expectedPath) {
+    throw new HttpError(400, "INVALID_REDIRECT", `${field} is not an approved redirect.`);
+  }
+  if (parsed.username || parsed.password || parsed.hash) {
+    throw new HttpError(400, "INVALID_REDIRECT", `${field} is invalid.`);
+  }
+  return raw;
 }

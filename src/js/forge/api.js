@@ -70,6 +70,13 @@ export async function forgeFetch(path, opts = {}) {
   return text ? JSON.parse(text) : null;
 }
 
+function idempotencyKey(prefix) {
+  if (globalThis.crypto?.randomUUID) {
+    return `${prefix}-${globalThis.crypto.randomUUID()}`;
+  }
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
 // ---------------------------------------------------------------------------
 // Typed convenience wrappers for each customer endpoint the website uses.
 // ---------------------------------------------------------------------------
@@ -103,15 +110,22 @@ export const forge = {
 
   // Installation management
   deactivateInstallation: (id) =>
-    forgeFetch(`/v1/installations/${encodeURIComponent(id)}/deactivate`, { method: "POST" }),
+    forgeFetch(`/v1/installations/${encodeURIComponent(id)}/deactivate`, {
+      method: "POST",
+      idempotencyKey: idempotencyKey("installation-deactivate"),
+    }),
 
   // Account deletion lifecycle
   requestDeletion: (reason) =>
     forgeFetch("/v1/account/deletion-request", {
       method: "POST",
       body: reason ? { reason } : {},
+      idempotencyKey: idempotencyKey("deletion-request"),
     }),
   getDeletionRequest: () => forgeFetch("/v1/account/deletion-request"),
   cancelDeletion: () =>
-    forgeFetch("/v1/account/deletion-request/cancel", { method: "POST" }),
+    forgeFetch("/v1/account/deletion-request/cancel", {
+      method: "POST",
+      idempotencyKey: idempotencyKey("deletion-cancel"),
+    }),
 };

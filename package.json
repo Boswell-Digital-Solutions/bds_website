@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "bun run dev-server.ts",
     "start": "bun run dev-server.ts",
-    "qc:stateforge": "bun run tools/qc/stateforge.ts"
+    "qc:stateforge": "bun run tools/qc/stateforge.ts",
+    "qc:security": "bun test tests/security.test.ts && bun run tools/qc/no-side-door.ts"
   }
 }

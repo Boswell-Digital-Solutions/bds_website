@@ -3,7 +3,7 @@ const form = document.querySelector("[data-intake-form]");
 if (form instanceof HTMLFormElement) {
   const statusElement = form.querySelector("[data-form-status]");
   const submitButton = form.querySelector("[data-submit-button]");
-  const intakeUrl = form.dataset.intakeUrl?.trim() ?? "";
+  const intakeUrl = form.dataset.intakeUrl?.trim() || "/api/intake/consultation";
   const fallbackEmail = form.dataset.fallbackEmail?.trim() ?? "";
   const timeoutMs = 8000;
 
@@ -83,7 +83,8 @@ if (form instanceof HTMLFormElement) {
       const response = await fetch(intakeUrl, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          "Idempotency-Key": idempotencyKey()
         },
         body: JSON.stringify(payload),
         signal: controller.signal
@@ -112,4 +113,11 @@ if (form instanceof HTMLFormElement) {
       setSubmitting(false);
     }
   });
+}
+
+function idempotencyKey() {
+  if (globalThis.crypto?.randomUUID) {
+    return `contact-${globalThis.crypto.randomUUID()}`;
+  }
+  return `contact-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
