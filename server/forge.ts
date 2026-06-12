@@ -124,6 +124,18 @@ const ROUTES: RoutePolicy[] = [
     validateBody: validateCheckout,
   }),
 
+  policy("POST", "/v1/billing-portal", {
+    auth: "customer",
+    cssaAction: "billing.portal",
+    dataClass: "R2",
+    id: "forge.billing.portal",
+    idempotency: "optional",
+    maxBodyBytes: LIMITS.checkoutBodyBytes,
+    originRequired: true,
+    surface: "forgecustomer.account",
+    validateBody: validateBillingPortal,
+  }),
+
   policy("GET", "/v1/account", readPolicy("account.read", "forge.account.read", "forgecustomer.account")),
   policy(
     "GET",
@@ -200,7 +212,7 @@ function readPolicy(
   };
 }
 
-function findPolicy(method: string, path: string): RoutePolicy | undefined {
+export function findPolicy(method: string, path: string): RoutePolicy | undefined {
   return ROUTES.find((item) => item.method === method && item.regex.test(path));
 }
 
@@ -422,6 +434,12 @@ function validateCheckout(input: Record<string, unknown>): Record<string, unknow
   const successUrl = validateSameOriginRedirect(input.success_url, "success_url", "/checkout/success.html");
   const cancelUrl = validateSameOriginRedirect(input.cancel_url, "cancel_url", "/checkout/cancel.html");
   return { plan_key: planKey, success_url: successUrl, cancel_url: cancelUrl };
+}
+
+function validateBillingPortal(input: Record<string, unknown>): Record<string, unknown> {
+  rejectUnknown(input, new Set(["return_url"]));
+  const returnUrl = validateSameOriginRedirect(input.return_url, "return_url", "/account.html");
+  return { return_url: returnUrl };
 }
 
 function validateDeletionRequest(input: Record<string, unknown>): Record<string, unknown> {

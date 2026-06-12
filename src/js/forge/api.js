@@ -99,6 +99,14 @@ export const forge = {
       idempotencyKey,
     }),
 
+  // Self-service billing (Stripe Customer Portal)
+  billingPortal: ({ returnUrl }) =>
+    forgeFetch("/v1/billing-portal", {
+      method: "POST",
+      body: { return_url: returnUrl },
+      idempotencyKey: idempotencyKey("billing-portal"),
+    }),
+
   // Dashboard reads
   account: () => forgeFetch("/v1/account"),
   subscriptions: () => forgeFetch("/v1/subscriptions"),

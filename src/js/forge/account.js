@@ -245,6 +245,38 @@ async function renderUsage() {
   }
 }
 
+// Self-service billing: hand the browser to the Stripe Customer Portal. ForgeCustomer
+// mints an ephemeral session; nothing here mutates subscription truth — the customer's
+// change reprojects via webhook and shows on next load. Free-baseline accounts get a
+// friendly 409 (NO_BILLING_ACCOUNT) rendered inline rather than a redirect.
+function wireBillingPortal() {
+  const button = document.querySelector("[data-billing-portal]");
+  if (!(button instanceof HTMLButtonElement)) return;
+  const status = document.querySelector("[data-billing-portal-status]");
+  button.hidden = false;
+  button.addEventListener("click", async () => {
+    const original = button.textContent;
+    button.disabled = true;
+    button.textContent = "Opening…";
+    if (status) status.textContent = "";
+    try {
+      const result = await forge.billingPortal({
+        returnUrl: `${window.location.origin}/account.html`,
+      });
+      const url = result?.url;
+      if (!url) throw new Error("Billing portal did not return a URL.");
+      window.location.assign(url);
+    } catch (error) {
+      const descriptor = await handleForgeError(error);
+      if (!descriptor.redirect) {
+        if (status) status.textContent = descriptor.message;
+        button.disabled = false;
+        button.textContent = original;
+      }
+    }
+  });
+}
+
 // --- bootstrap -------------------------------------------------------------
 
 async function init() {
@@ -266,6 +298,8 @@ async function init() {
   if (!session) {
     return;
   }
+
+  wireBillingPortal();
 
   // Reads run in parallel; each section handles its own errors.
   await Promise.all([

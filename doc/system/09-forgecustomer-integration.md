@@ -109,6 +109,14 @@ redirect alone.**
   `POST /v1/installations/{id}/deactivate` to free a device slot
 - `GET /v1/usage/current` — per-meter usage bars (the website never writes usage)
 
+The one subscription **write** offered here is self-service billing: a "Manage billing &
+subscription" button posts `POST /v1/billing-portal` (`{ return_url }`, origin-locked to
+`/account.html`) and sends the browser to the returned Stripe **Customer Portal** URL, where
+the customer can cancel, switch plan, or update their card. Like checkout, this is a door,
+not a mutation — the change reprojects via the ForgeCustomer webhook and shows on next load.
+A free-baseline account (no Stripe customer) gets a friendly inline `NO_BILLING_ACCOUNT`
+message instead of a redirect.
+
 ### 5. Account deletion
 
 `src/js/forge/deletion.js` (in the account page) drives the deletion lifecycle:
@@ -132,5 +140,5 @@ signed out gracefully and sent to `/account/closed.html`.
 | `src/js/forge/login.js` | Login / sign-up / magic-link controller |
 | `src/js/forge/pricing.js` | Catalog render + checkout start |
 | `src/js/forge/checkout-success.js` | Activation polling |
-| `src/js/forge/account.js` | Dashboard reads + device deactivation |
+| `src/js/forge/account.js` | Dashboard reads + device deactivation + billing-portal redirect |
 | `src/js/forge/deletion.js` | Deletion lifecycle |

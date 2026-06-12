@@ -32,6 +32,10 @@ Key boundaries enforced in code:
 - Entitlements activate from Stripe's webhook-driven projection, never from a
   browser redirect — the checkout success page polls `GET /v1/subscriptions`
   until `grants_cloud: true`.
+- Self-service subscription changes use Stripe's hosted **Customer Portal**:
+  `POST /v1/billing-portal` mints a portal session (origin-locked `return_url`); the
+  cancel/switch result reprojects via webhook. The website never holds a cancel/plan-change
+  surface of its own.
 
 Login reuses Supabase; ForgeCustomer validates JWTs from the same project.
 

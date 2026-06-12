@@ -7,6 +7,7 @@ import {
   parseJsonObject,
 } from "../server/security/http.ts";
 import { resolvePublicFile } from "../server/security/publication.ts";
+import { findPolicy } from "../server/forge.ts";
 
 const root = "/tmp/bds_website";
 
@@ -48,5 +49,32 @@ describe("request contracts", () => {
     expect(normalizeIdempotencyKey(undefined, "optional")).toBeUndefined();
     expect(() => normalizeIdempotencyKey(undefined, "required")).toThrow();
     expect(() => normalizeIdempotencyKey("present-key", "forbidden")).toThrow();
+  });
+});
+
+describe("forge BFF allowlist", () => {
+  test("billing-portal is an allowlisted, origin-locked customer POST", () => {
+    const policy = findPolicy("POST", "/v1/billing-portal");
+    expect(policy?.auth).toBe("customer");
+    expect(policy?.originRequired).toBe(true);
+  });
+
+  test("admin and raw Stripe paths are never reachable through the website", () => {
+    expect(findPolicy("GET", "/v1/admin/customers")).toBeUndefined();
+    expect(findPolicy("POST", "/v1/admin/licenses")).toBeUndefined();
+    expect(findPolicy("POST", "/v1/billing_portal/sessions")).toBeUndefined();
+  });
+
+  test("billing-portal locks return_url to the site account page", () => {
+    const policy = findPolicy("POST", "/v1/billing-portal");
+    expect(() =>
+      policy?.validateBody?.({ return_url: "https://evil.example/account.html" })
+    ).toThrow();
+    expect(() => policy?.validateBody?.({ return_url: "https://x.com/elsewhere" })).toThrow();
+    expect(
+      policy?.validateBody?.({
+        return_url: "https://boswelldigitalsolutions.com/account.html",
+      })
+    ).toEqual({ return_url: "https://boswelldigitalsolutions.com/account.html" });
   });
 });
