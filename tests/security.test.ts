@@ -8,6 +8,12 @@ import {
 } from "../server/security/http.ts";
 import { resolvePublicFile } from "../server/security/publication.ts";
 import { findPolicy } from "../server/forge.ts";
+import {
+  isPubliclyVisibleProduct,
+  primaryProductHref,
+  safePublicHref,
+} from "../src/lib/products/catalog.ts";
+import type { WebsiteProductManifestV1 } from "../src/lib/products/types.ts";
 
 const root = "/tmp/bds_website";
 
@@ -76,5 +82,60 @@ describe("forge BFF allowlist", () => {
         return_url: "https://boswelldigitalsolutions.com/account.html",
       })
     ).toEqual({ return_url: "https://boswelldigitalsolutions.com/account.html" });
+  });
+});
+
+describe("website product manifest", () => {
+  const baseProduct: WebsiteProductManifestV1 = {
+    schema: "WebsiteProductManifest.v1",
+    slug: "authorforge",
+    name: "AuthorForge",
+    status: "live",
+    visibility: "public",
+    version: "1.0.0",
+    summary: "Local-first authoring operating system.",
+    source: {
+      provider: "github",
+      repoOwner: "Boswecw",
+      repoName: "Author-Forge",
+      commitSha: "abc123",
+    },
+    links: {
+      launchUrl: "https://authorforge.onrender.com",
+    },
+    access: {
+      requiresLogin: false,
+      requiresEntitlement: false,
+      publicListing: true,
+    },
+    timestamps: {
+      goLiveAt: "2026-06-15T09:30:00-04:00",
+      goLiveTimezone: "America/New_York",
+      updatedAt: "2026-06-15T09:20:00-04:00",
+    },
+  };
+
+  test("filters public listings by goLiveAt and access flags", () => {
+    expect(
+      isPubliclyVisibleProduct(baseProduct, new Date("2026-06-15T13:29:59.000Z"))
+    ).toBe(false);
+    expect(
+      isPubliclyVisibleProduct(baseProduct, new Date("2026-06-15T13:30:00.000Z"))
+    ).toBe(true);
+    expect(
+      isPubliclyVisibleProduct(
+        { ...baseProduct, access: { ...baseProduct.access, publicListing: false } },
+        new Date("2026-06-15T13:30:00.000Z")
+      )
+    ).toBe(false);
+  });
+
+  test("uses safe product links and falls back when launch URLs are invalid", () => {
+    expect(safePublicHref("javascript:alert(1)")).toBeUndefined();
+    expect(safePublicHref("//evil.example/path")).toBeUndefined();
+    expect(safePublicHref("/authorforge.html")).toBe("/authorforge.html");
+    expect(primaryProductHref({ ...baseProduct, links: { launchUrl: "not a url" } })).toBe(
+      "/products.html"
+    );
   });
 });

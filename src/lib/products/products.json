@@ -1,0 +1,36 @@
+[
+  {
+    "schema": "WebsiteProductManifest.v1",
+    "slug": "authorforge",
+    "name": "AuthorForge",
+    "status": "live",
+    "visibility": "public",
+    "version": "1.0.0",
+    "summary": "Local-first authoring operating system for serious indie authors and small publishing companies.",
+    "description": "AuthorForge helps writers organize long-form fiction, character arcs, drafts, revisions, and publishing workflows while preserving local-first control.",
+    "source": {
+      "provider": "github",
+      "repoOwner": "Boswecw",
+      "repoName": "Author-Forge",
+      "defaultBranch": "main",
+      "commitSha": "seed-catalog-record"
+    },
+    "links": {
+      "launchUrl": "/authorforge.html",
+      "pricingUrl": "/pricing.html",
+      "supportUrl": "/contact.html",
+      "docsUrl": "/authorforge.html"
+    },
+    "access": {
+      "requiresLogin": false,
+      "requiresEntitlement": false,
+      "publicListing": true
+    },
+    "timestamps": {
+      "goLiveAt": "2026-06-01T09:00:00-04:00",
+      "goLiveTimezone": "America/New_York",
+      "publishedAt": "2026-06-15T09:00:00-04:00",
+      "updatedAt": "2026-06-15T09:00:00-04:00"
+    }
+  }
+]
