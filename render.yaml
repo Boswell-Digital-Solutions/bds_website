@@ -19,6 +19,14 @@ services:
     envVars:
       - key: BUN_VERSION
         value: 1.3.11
+      # Host allowlist for validateAllowedHost. NOTE: when set, this REPLACES the
+      # in-code DEFAULT_ALLOWED_HOSTS (it is env-OR-defaults, not a merge), so this
+      # list must include everything the service must answer for: the Render URL
+      # (for direct testing), the production domains, and localhost/127.0.0.1 so
+      # Render's internal /healthz check is not rejected. Trim the onrender host
+      # once the custom domain + TLS cutover is complete.
+      - key: BDS_ALLOWED_HOSTS
+        value: bds-website.onrender.com,boswelldigitalsolutions.com,www.boswelldigitalsolutions.com,127.0.0.1,localhost,[::1],::1
       # Values are environment-specific; Render prompts for them when the
       # Blueprint is created (sync: false keeps them out of the repo).
       # Until they are set the static site still serves and the BFF fails
