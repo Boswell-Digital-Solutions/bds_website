@@ -6,15 +6,19 @@
 
 ## Which database the threads live in
 
-The HUD thread tables/RPCs live in the **website's login Supabase project** — the
-one whose URL is in `SUPABASE_URL` on the bds-website Render service, and where
-`Authentication → Users` lists the site's accounts. This is required: the RPCs
-use `auth.uid()` / `auth.users`, which only exist in the project that owns the
-site's auth users, and the website forwards that project's JWT for RLS.
+The HUD thread tables/RPCs live in the **Supabase project the website
+authenticates against** — the one whose URL is in `SUPABASE_URL` on the
+bds-website Render service, and where `Authentication → Users` lists the site's
+accounts. **In this deployment that is the ForgeCustomer Supabase project** (it
+provides the site's Supabase Auth). Required: the RPCs use `auth.uid()` /
+`auth.users`, which only exist in that project, and the website forwards that
+project's JWT for RLS.
 
-- **Not ForgeCustomer's database** — commercial/billing truth; the website only
-  reaches it via the `/api/forge/*` proxy, never directly. Support chat ≠ billing.
-- **Not DataForge** — unrelated service.
+- The `hud_*` tables are **isolated by RLS** and independent of ForgeCustomer's
+  commercial/billing tables. The website's `/api/forge/*` proxy to the
+  ForgeCustomer *service* is unchanged — this is the shared Supabase *auth*
+  project, not ForgeCustomer's application API.
+- **Not DataForge** or any other store — the schema must sit with `auth.users`.
 
 Forge_Command (phase 2d) connects to this same project with the service role to
 write operator replies. All support-chat data stays in this one auth project.

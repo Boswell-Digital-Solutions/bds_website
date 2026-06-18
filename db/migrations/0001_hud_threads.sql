@@ -3,15 +3,18 @@
 -- ===========================================================================
 -- WHICH DATABASE DOES THIS GO IN?
 -- ---------------------------------------------------------------------------
--- The bds_website LOGIN Supabase project — the one whose URL is in SUPABASE_URL
--- on the bds-website Render service, and where Authentication -> Users lists the
--- site's accounts. This is REQUIRED: the objects below use auth.uid() and
--- reference auth.users, which only exist in the project that owns the site's
--- auth users.
+-- The Supabase project the website AUTHENTICATES against — the one whose URL is
+-- in SUPABASE_URL on the bds-website Render service, and where
+-- Authentication -> Users lists the site's accounts. In this deployment that is
+-- the ForgeCustomer Supabase project (it provides the site's Supabase Auth).
+-- REQUIRED: the objects below use auth.uid() and reference auth.users, which
+-- only exist in that project, and the website forwards that project's JWT so
+-- RLS can scope rows to the signed-in visitor.
 --
---   NOT ForgeCustomer's database — that holds commercial/billing truth and the
---   website only reaches it through the /api/forge/* proxy, never directly.
---   NOT DataForge — unrelated service.
+-- These hud_* tables are isolated by RLS and are independent of ForgeCustomer's
+-- commercial/billing tables; the website's /api/forge/* proxy to the
+-- ForgeCustomer *service* is unchanged. Do NOT place them in a different store
+-- (e.g. DataForge) — they must live with auth.users.
 --
 -- Forge_Command later connects to THIS SAME project with the service role to
 -- write operator replies. All support-chat data lives in this one auth project.
