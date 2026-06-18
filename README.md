@@ -42,11 +42,23 @@ bds_website/
 
 ## HUD System
 
-The BDS Assistant HUD is an ambient right-edge dock:
-- Never auto-expands
-- Context-aware suggestions per page
-- Keyboard navigable with focus trapping
-- Polite, capable, non-intrusive tone
+The BDS Support HUD is a bottom-right messenger widget (structure modeled on
+the Render help widget). It self-mounts on every page that links `hud.css` —
+`src/js/hud.js` injects the markup and is imported by `src/js/site.js`, so no
+per-page markup is required.
+
+- **Home tab** — live system status (`/healthz`), quick links, and a
+  "Send us a message" action.
+- **Messages tab** — a composer that posts to the governed intake lane
+  (`/api/intake/consultation`, `source_page: "hud"`) plus the receipts of
+  messages sent during the current browser session.
+- Never auto-expands · keyboard navigable with focus trapping · reads only,
+  never mutates business state.
+
+> Two-way conversation threads (persistent history + agent replies) are a
+> deliberate follow-on: they need a message store (Supabase/ForgeCustomer) and
+> an operator reply path, which belongs in **Forge_Command**, not the
+> marketing surface.
 
 ## Pages (Build Sequence)
 

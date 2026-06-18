@@ -8,6 +8,7 @@ import {
 } from "../server/security/http.ts";
 import { resolvePublicFile } from "../server/security/publication.ts";
 import { findPolicy } from "../server/forge.ts";
+import { validateContactPayload } from "../server/intake.ts";
 import {
   isPubliclyVisibleProduct,
   primaryProductHref,
@@ -137,5 +138,36 @@ describe("website product manifest", () => {
     expect(primaryProductHref({ ...baseProduct, links: { launchUrl: "not a url" } })).toBe(
       "/products.html"
     );
+  });
+});
+
+describe("intake contact payload", () => {
+  const valid = {
+    name: "Ada Lovelace",
+    email: "ada@example.com",
+    reason: "General support",
+    message: "Hello from the HUD.",
+    source_page: "hud",
+  };
+
+  test("accepts the hud source page", () => {
+    const payload = validateContactPayload({ ...valid });
+    expect(payload.source_page).toBe("hud");
+    expect(payload.email).toBe("ada@example.com");
+  });
+
+  test("still accepts the contact page source", () => {
+    expect(validateContactPayload({ ...valid, source_page: "contact.html" }).source_page).toBe(
+      "contact.html"
+    );
+  });
+
+  test("rejects unlisted source pages and unknown reasons", () => {
+    expect(() => validateContactPayload({ ...valid, source_page: "evil.html" })).toThrow();
+    expect(() => validateContactPayload({ ...valid, reason: "Arbitrary" })).toThrow();
+  });
+
+  test("rejects unknown fields", () => {
+    expect(() => validateContactPayload({ ...valid, role: "admin" })).toThrow();
   });
 });

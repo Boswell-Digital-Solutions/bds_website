@@ -24,6 +24,10 @@ const CONTACT_REASONS = new Set([
   "General support",
 ]);
 
+// Pages permitted to submit through the intake lane. The HUD support messenger
+// is a first-class source alongside the dedicated contact page.
+const CONTACT_SOURCES = new Set(["contact.html", "hud"]);
+
 export async function handleIntakeApi(
   request: IncomingMessage,
   response: ServerResponse,
@@ -102,7 +106,7 @@ export async function handleIntakeApi(
   }
 }
 
-function validateContactPayload(input: Record<string, unknown>): Record<string, string> {
+export function validateContactPayload(input: Record<string, unknown>): Record<string, string> {
   const allowed = new Set(["name", "email", "reason", "message", "source_page", "turnstile_token"]);
   for (const key of Object.keys(input)) {
     if (!allowed.has(key)) {
@@ -122,7 +126,7 @@ function validateContactPayload(input: Record<string, unknown>): Record<string, 
   if (!CONTACT_REASONS.has(reason)) {
     throw new HttpError(400, "INVALID_REASON", "Contact reason is invalid.");
   }
-  if (sourcePage !== "contact.html") {
+  if (!CONTACT_SOURCES.has(sourcePage)) {
     throw new HttpError(400, "INVALID_SOURCE", "Contact source is invalid.");
   }
 

@@ -1,37 +1,36 @@
 /* ============================================================
-   HUD Assistant — Ambient Right-Edge Dock
-   Polite • Feminine • Capable • Non-intrusive
+   HUD Support Messenger — Bottom-Right Floating Widget
+   Structure modeled on the Render help widget:
+   Home (status + suggestions + send) / Messages (compose + receipts)
+   Polite • Capable • Non-intrusive • No glow, no gradients
    ============================================================ */
 
-/* ---- Collapsed Dock (Default) ---- */
+/* ---- Launcher (collapsed) ---- */
 .hud-dock {
   position: fixed;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
+  right: var(--space-3);
+  bottom: var(--space-3);
   z-index: 200;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: var(--space-1);
 }
 
 .hud-dock__trigger {
-  width: 40px;
-  height: 40px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
-  background: var(--hud-bg);
-  border: 1px solid var(--hud-border);
+  background: var(--bg-surface);
+  border: 1px solid var(--accent-border);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all var(--transition-base);
+  box-shadow: var(--shadow-card);
+  transition: border-color var(--transition-base), transform var(--transition-base);
   position: relative;
 }
 
 .hud-dock__trigger:hover {
-  border-color: var(--accent-border);
+  border-color: var(--accent);
+  transform: translateY(-2px);
 }
 
 .hud-dock__trigger:focus-visible {
@@ -40,12 +39,18 @@
 }
 
 .hud-dock__trigger-icon {
-  width: 18px;
-  height: 18px;
+  width: 24px;
+  height: 24px;
   color: var(--accent);
 }
 
-/* Subtle ambient pulse — 12-15s interval */
+/* Hide the launcher while the panel is open */
+.hud-dock[data-open="true"] .hud-dock__trigger {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Subtle ambient pulse — long interval, never demanding */
 .hud-dock__trigger::after {
   content: '';
   position: absolute;
@@ -58,34 +63,52 @@
 
 @keyframes hud-pulse {
   0%, 90%, 100% { opacity: 0; transform: scale(1); }
-  95% { opacity: 0.6; transform: scale(1.15); }
+  95% { opacity: 0.6; transform: scale(1.12); }
 }
 
-/* ---- Expanded Panel ---- */
+@media (prefers-reduced-motion: reduce) {
+  .hud-dock__trigger::after { animation: none; }
+}
+
+/* ---- Panel ---- */
 .hud-panel {
   position: fixed;
-  top: 0;
-  right: -100%;
-  width: min(32vw, 420px);
-  height: 100vh;
+  right: var(--space-3);
+  bottom: var(--space-3);
+  width: min(380px, calc(100vw - 2 * var(--space-3)));
+  height: min(620px, calc(100vh - 2 * var(--space-3)));
   background: var(--hud-bg);
-  border-left: 1px solid var(--hud-border);
+  border: 1px solid var(--hud-border);
+  border-radius: calc(var(--radius) * 2);
+  box-shadow: var(--shadow-card);
   z-index: 201;
   display: flex;
   flex-direction: column;
-  transition: right var(--transition-base);
   overflow: hidden;
+  opacity: 0;
+  transform: translateY(12px) scale(0.98);
+  transform-origin: bottom right;
+  pointer-events: none;
+  transition: opacity var(--transition-base), transform var(--transition-base);
 }
 
 .hud-panel--open {
-  right: 0;
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .hud-panel { transition: opacity var(--transition-base); transform: none; }
+  .hud-panel--open { transform: none; }
+}
+
+/* ---- Header ---- */
 .hud-panel__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-3);
+  padding: var(--space-2) var(--space-3);
   border-bottom: 1px solid var(--hud-border);
   flex-shrink: 0;
 }
@@ -105,35 +128,95 @@
   justify-content: center;
   color: var(--hud-text-secondary);
   border-radius: var(--radius);
-  transition: color var(--transition-fast);
+  transition: color var(--transition-fast), background var(--transition-fast);
+  cursor: pointer;
 }
 
 .hud-panel__close:hover {
   color: var(--hud-text-primary);
+  background: var(--bg-elevated);
 }
 
-.hud-panel__body {
+.hud-panel__close:focus-visible {
+  outline: 2px solid var(--hud-focus-ring);
+  outline-offset: 2px;
+}
+
+/* ---- Views ---- */
+.hud-panel__views {
   flex: 1;
+  overflow: hidden;
+  display: flex;
+}
+
+.hud-view {
+  flex: 1 0 100%;
   overflow-y: auto;
   padding: var(--space-3);
-  display: flex;
+  display: none;
   flex-direction: column;
   gap: var(--space-3);
 }
 
-.hud-panel__greeting {
+.hud-view--active {
+  display: flex;
+}
+
+/* ---- Status card ---- */
+.hud-status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  background: var(--bg-surface);
+  border: 1px solid var(--hud-border);
+  border-radius: var(--radius);
+}
+
+.hud-status__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.hud-status[data-state="operational"] .hud-status__dot { background: var(--color-success); }
+.hud-status[data-state="degraded"]    .hud-status__dot { background: var(--color-warning); }
+.hud-status[data-state="down"]        .hud-status__dot { background: var(--color-error); }
+
+.hud-status__text {
+  display: flex;
+  flex-direction: column;
+}
+
+.hud-status__label {
+  font-size: var(--fs-small);
+  font-weight: var(--fw-medium);
+  color: var(--hud-text-primary);
+}
+
+.hud-status__meta {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* ---- Greeting + suggestions ---- */
+.hud-greeting {
   color: var(--hud-text-secondary);
   font-size: var(--fs-body);
   line-height: var(--lh-body);
 }
 
-.hud-panel__suggestions {
+.hud-greeting strong { color: var(--hud-text-primary); }
+
+.hud-suggestions {
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
 }
 
-.hud-panel__suggestion-btn {
+.hud-suggestion {
   display: block;
   width: 100%;
   text-align: left;
@@ -144,83 +227,225 @@
   background: var(--hud-input-bg);
   border: 1px solid var(--hud-border);
   border-radius: var(--radius);
-  transition: all var(--transition-fast);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
 }
 
-.hud-panel__suggestion-btn:hover {
+.hud-suggestion:hover {
   border-color: var(--accent-border);
   color: var(--accent);
 }
 
-.hud-panel__footer {
-  padding: var(--space-3);
-  border-top: 1px solid var(--hud-border);
-  flex-shrink: 0;
+.hud-suggestion:focus-visible {
+  outline: 2px solid var(--hud-focus-ring);
+  outline-offset: 2px;
 }
 
-.hud-panel__input-wrap {
+/* ---- Primary action + doc link ---- */
+.hud-cta {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.hud-btn {
   display: flex;
   align-items: center;
-  gap: var(--space-1);
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.75rem var(--space-2);
+  font-size: var(--fs-small);
+  font-weight: var(--fw-semibold);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.hud-btn--primary {
+  background: var(--accent);
+  color: #0F172A;
+  border: 1px solid var(--accent);
+}
+
+.hud-btn--primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+
+.hud-btn:focus-visible {
+  outline: 2px solid var(--hud-focus-ring);
+  outline-offset: 2px;
+}
+
+.hud-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.5rem;
+  font-size: var(--fs-small);
+  color: var(--hud-text-secondary);
+  border-radius: var(--radius);
+}
+
+.hud-link:hover { color: var(--accent); }
+
+.hud-link__icon { width: 14px; height: 14px; }
+
+/* ---- Messages: composer ---- */
+.hud-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.hud-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.hud-field__label {
+  font-size: 0.75rem;
+  font-weight: var(--fw-medium);
+  color: var(--hud-text-secondary);
+}
+
+.hud-input,
+.hud-textarea {
+  width: 100%;
   background: var(--hud-input-bg);
   border: 1px solid var(--hud-border);
   border-radius: var(--radius);
   padding: 0.5rem var(--space-2);
-  transition: border-color var(--transition-fast);
-}
-
-.hud-panel__input-wrap:focus-within {
-  border-color: var(--hud-focus-ring);
-}
-
-.hud-panel__input {
-  flex: 1;
-  background: transparent;
-  border: none;
   color: var(--hud-text-primary);
   font-family: var(--font-body);
   font-size: var(--fs-small);
-  outline: none;
+  transition: border-color var(--transition-fast);
 }
 
-.hud-panel__input::placeholder {
+.hud-textarea { resize: vertical; min-height: 92px; }
+
+.hud-input:focus,
+.hud-textarea:focus {
+  outline: none;
+  border-color: var(--hud-focus-ring);
+}
+
+.hud-input::placeholder,
+.hud-textarea::placeholder { color: var(--text-muted); }
+
+.hud-form__status {
+  font-size: var(--fs-small);
+  line-height: var(--lh-body);
+  min-height: 1.2em;
+}
+
+.hud-form__status[data-state="pending"] { color: var(--hud-text-secondary); }
+.hud-form__status[data-state="success"] { color: var(--color-success); }
+.hud-form__status[data-state="error"]   { color: var(--color-error); }
+
+/* ---- Messages: receipts ---- */
+.hud-receipts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.hud-receipts__heading {
+  font-size: 0.75rem;
+  font-weight: var(--fw-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   color: var(--text-muted);
 }
 
-.hud-panel__send {
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--accent);
-  flex-shrink: 0;
+.hud-receipt {
+  padding: var(--space-2);
+  background: var(--bg-surface);
+  border: 1px solid var(--hud-border);
+  border-left: 2px solid var(--accent);
   border-radius: var(--radius);
 }
 
-.hud-panel__send:hover {
-  background: var(--accent-subtle-bg);
+.hud-receipt__meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-bottom: 0.35rem;
 }
 
-/* ---- Overlay ---- */
+.hud-receipt__body {
+  font-size: var(--fs-small);
+  color: var(--hud-text-primary);
+  line-height: var(--lh-body);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.hud-receipts__empty {
+  font-size: var(--fs-small);
+  color: var(--text-muted);
+  line-height: var(--lh-body);
+}
+
+/* ---- Tab bar ---- */
+.hud-tabbar {
+  display: flex;
+  border-top: 1px solid var(--hud-border);
+  flex-shrink: 0;
+}
+
+.hud-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.6rem;
+  font-size: 0.75rem;
+  font-weight: var(--fw-medium);
+  color: var(--hud-text-secondary);
+  background: transparent;
+  cursor: pointer;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.hud-tab:hover { background: var(--bg-elevated); }
+
+.hud-tab__icon { width: 18px; height: 18px; }
+
+.hud-tab[aria-selected="true"] { color: var(--accent); }
+
+.hud-tab:focus-visible {
+  outline: 2px solid var(--hud-focus-ring);
+  outline-offset: -2px;
+}
+
+/* ---- Overlay (mobile only) ---- */
 .hud-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.3);
+  background: rgba(0,0,0,0.4);
   z-index: 200;
   opacity: 0;
   pointer-events: none;
   transition: opacity var(--transition-base);
 }
 
-.hud-overlay--visible {
-  opacity: 1;
-  pointer-events: auto;
-}
+/* ---- Responsive: full-screen sheet on small viewports ---- */
+@media (max-width: 480px) {
+  .hud-overlay--visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
 
-/* ---- Responsive ---- */
-@media (max-width: 768px) {
   .hud-panel {
+    right: 0;
+    bottom: 0;
     width: 100vw;
+    height: 100dvh;
+    border-radius: 0;
+    border: none;
   }
 }

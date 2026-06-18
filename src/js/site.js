@@ -1,3 +1,6 @@
+// The support HUD self-mounts on every page that links hud.css.
+import "./hud.js";
+
 const menuToggle = document.getElementById("menu-toggle");
 const mainNav = document.getElementById("main-nav");
 
