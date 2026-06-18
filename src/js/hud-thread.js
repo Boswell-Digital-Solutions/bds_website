@@ -116,6 +116,7 @@ export async function mountThreadMode(view) {
         return; // Stay quiet; configuration may arrive later.
       }
       if (!res.ok) {
+        console.warn(`[hud] thread load failed (${res.status})`);
         return;
       }
       const doc = await res.json();
@@ -140,16 +141,28 @@ export async function mountThreadMode(view) {
         body: JSON.stringify({ message }),
       });
       if (!res.ok) {
-        throw new Error(`send failed (${res.status})`);
+        let info = `${res.status}`;
+        try {
+          const e = await res.json();
+          if (e?.error?.code) {
+            info = `${e.error.code} (${res.status})`;
+          } else if (e?.error?.message) {
+            info = `${e.error.message} (${res.status})`;
+          }
+        } catch {
+          // Non-JSON error; keep the status code.
+        }
+        throw new Error(info);
       }
       const doc = await res.json();
       applyThread(doc);
       input.value = "";
       setStatus("success", "Sent.");
     } catch (error) {
-      setStatus("error", error instanceof Error && error.message === "UNAUTHENTICATED"
+      const detail = error instanceof Error ? error.message : "";
+      setStatus("error", detail === "UNAUTHENTICATED"
         ? "Your session expired. Sign in again to continue."
-        : "Could not send. Please try again.");
+        : `Could not send${detail ? ` — ${detail}` : ""}.`);
     } finally {
       sendBtn.disabled = false;
     }
