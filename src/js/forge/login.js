@@ -4,7 +4,7 @@
 
 import { getSupabase, getSession } from "./supabase.js";
 import { forge } from "./api.js";
-import { describeForgeError } from "./errors.js";
+import { describeForgeError, LOGIN_PAGE } from "./errors.js";
 
 const form = document.querySelector("[data-login-form]");
 
@@ -45,13 +45,19 @@ if (form instanceof HTMLFormElement) {
     try {
       await forge.provision({});
     } catch (error) {
-      // Suspended/closed accounts get a descriptor with a redirect.
       const descriptor = describeForgeError(error);
-      if (descriptor.redirect) {
+      // Honour genuine account-state redirects (suspended / closed). For any
+      // other provisioning failure — ForgeCustomer unavailable, not yet wired,
+      // timeout, or token-not-trusted — don't trap the user on login: their
+      // Supabase session is valid, so send them into the site and let
+      // provisioning retry later. Keeps login usable while the customer service
+      // is still being stood up.
+      if (descriptor.redirect && descriptor.redirect !== LOGIN_PAGE) {
         window.location.replace(descriptor.redirect);
         return;
       }
-      setStatus("error", descriptor.message);
+      console.warn("[login] provisioning deferred:", descriptor.message);
+      window.location.replace("/");
       return;
     }
     window.location.replace(safeNext());
