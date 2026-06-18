@@ -3,6 +3,7 @@ import { createServer } from "node:http";
 
 import { handleAppsRoute } from "./server/apps.ts";
 import { handleForgeApi } from "./server/forge.ts";
+import { handleHudApi } from "./server/hud.ts";
 import { handleIntakeApi } from "./server/intake.ts";
 import { resolvePublicFile } from "./server/security/publication.ts";
 import {
@@ -54,6 +55,9 @@ const server = createServer(async (request, response) => {
       return;
     }
     if (await handleIntakeApi(request, response, url)) {
+      return;
+    }
+    if (await handleHudApi(request, response, url)) {
       return;
     }
     if (await handleAppsRoute(request, response, url, rootDir, correlationId)) {

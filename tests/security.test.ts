@@ -9,6 +9,7 @@ import {
 import { resolvePublicFile } from "../server/security/publication.ts";
 import { findPolicy } from "../server/forge.ts";
 import { validateContactPayload } from "../server/intake.ts";
+import { validateMessage } from "../server/hud.ts";
 import {
   isPubliclyVisibleProduct,
   primaryProductHref,
@@ -169,5 +170,23 @@ describe("intake contact payload", () => {
 
   test("rejects unknown fields", () => {
     expect(() => validateContactPayload({ ...valid, role: "admin" })).toThrow();
+  });
+});
+
+describe("hud message payload", () => {
+  test("accepts a bounded message and trims it", () => {
+    expect(validateMessage({ message: "  hello there  " })).toEqual({ message: "hello there" });
+  });
+
+  test("allows newlines but rejects other control characters", () => {
+    expect(validateMessage({ message: "line one\nline two" }).message).toBe("line one\nline two");
+    expect(() => validateMessage({ message: "badbell" })).toThrow();
+  });
+
+  test("rejects empty, oversized, non-string, and unknown fields", () => {
+    expect(() => validateMessage({ message: "   " })).toThrow();
+    expect(() => validateMessage({ message: "x".repeat(5001) })).toThrow();
+    expect(() => validateMessage({ message: 42 })).toThrow();
+    expect(() => validateMessage({ message: "ok", author: "operator" })).toThrow();
   });
 });

@@ -389,6 +389,52 @@
   line-height: var(--lh-body);
 }
 
+/* ---- Tier 2: conversation thread ---- */
+.hud-thread {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  overflow-y: auto;
+  flex: 1;
+  min-height: 120px;
+}
+
+.hud-msg {
+  max-width: 85%;
+  padding: var(--space-2);
+  border-radius: var(--radius);
+  border: 1px solid var(--hud-border);
+}
+
+.hud-msg--visitor {
+  align-self: flex-end;
+  background: var(--accent-subtle-bg);
+  border-color: var(--accent-border);
+}
+
+.hud-msg--operator {
+  align-self: flex-start;
+  background: var(--bg-surface);
+}
+
+.hud-msg__body {
+  font-size: var(--fs-small);
+  color: var(--hud-text-primary);
+  line-height: var(--lh-body);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.hud-msg__meta {
+  margin-top: 0.3rem;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.hud-thread__composer {
+  flex-shrink: 0;
+}
+
 /* ---- Tab bar ---- */
 .hud-tabbar {
   display: flex;
