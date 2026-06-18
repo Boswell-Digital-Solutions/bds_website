@@ -242,8 +242,27 @@ function mount() {
     }
   };
 
+  // Tier 2: the first time Messages opens, try to upgrade to a persistent
+  // thread for signed-in visitors. Anonymous visitors keep the Tier 1 composer.
+  let threadModeTried = false;
+  const maybeEnterThreadMode = async () => {
+    if (threadModeTried) {
+      return;
+    }
+    threadModeTried = true;
+    try {
+      const mod = await import("./hud-thread.js");
+      await mod.mountThreadMode(views.messages);
+    } catch {
+      // Keep the Tier 1 composer on any failure.
+    }
+  };
+
   tabs.home.addEventListener("click", () => selectView("home"));
-  tabs.messages.addEventListener("click", () => selectView("messages"));
+  tabs.messages.addEventListener("click", () => {
+    selectView("messages");
+    void maybeEnterThreadMode();
+  });
 
   // ---- quick links ----
   const suggestions = document.getElementById("hud-suggestions");
@@ -256,9 +275,11 @@ function mount() {
   }
 
   // "Send us a message" jumps to the composer
-  document.getElementById("hud-send-cta").addEventListener("click", () => {
+  document.getElementById("hud-send-cta").addEventListener("click", async () => {
     selectView("messages");
-    document.getElementById("hud-message").focus();
+    await maybeEnterThreadMode();
+    // Tier 1 composer focuses the message box; thread mode replaces it.
+    document.getElementById("hud-message")?.focus();
   });
 
   // ---- status card ----

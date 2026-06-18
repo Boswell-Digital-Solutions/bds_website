@@ -1,8 +1,29 @@
 # HUD Tier 2 — Persistent Two-Way Conversation Threads
 
-**Status:** Plan (not started)
+**Status:** Phase 2a implemented (signed-in threads, polling). Phases 2b–2d pending.
 **Depends on:** Tier 1 support HUD (merged) — `src/js/hud.js`, `server/intake.ts`
 **Primary operator surface:** Forge_Command (operator replies live there, not on the marketing site)
+
+## Implemented so far (phase 2a)
+
+- **DB:** `db/migrations/0001_hud_threads.sql` — `hud_thread` / `hud_message`
+  tables, RLS scoped to `auth.uid()`, and the SECURITY INVOKER RPCs
+  `hud_current_thread()` / `hud_post_message(text)`. **Apply this in Supabase
+  before the feature does anything** (until then the routes 503 and the HUD
+  stays on the Tier 1 composer).
+- **Server:** `server/hud.ts` — `GET /api/hud/thread`, `POST /api/hud/messages`.
+  Forwards the visitor's Supabase JWT to the RPCs through `governedFetchText`;
+  fails closed when `SUPABASE_URL` / `SUPABASE_ANON_KEY` are unset. The
+  service-role key is never used here.
+- **Client:** `src/js/hud-thread.js` — lazy-loaded when a signed-in visitor
+  opens Messages; renders the thread, polls every 20s, posts via the BFF.
+  Anonymous visitors keep the Tier 1 intake composer.
+- **Config:** reuses the existing `SUPABASE_URL` + `SUPABASE_ANON_KEY`. Optional
+  `SUPABASE_ALLOWED_HOSTS` pins the upstream host.
+
+Still to do: **2b** anonymous threads, **2c** Supabase Realtime, **2d** the
+Forge_Command operator inbox (the reply side — operator messages won't appear
+until that exists).
 
 ---
 
