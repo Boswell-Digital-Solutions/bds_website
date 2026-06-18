@@ -1,5 +1,22 @@
 -- HUD Tier 2 — support conversation threads (phase 2a: authenticated users).
 --
+-- ===========================================================================
+-- WHICH DATABASE DOES THIS GO IN?
+-- ---------------------------------------------------------------------------
+-- The bds_website LOGIN Supabase project — the one whose URL is in SUPABASE_URL
+-- on the bds-website Render service, and where Authentication -> Users lists the
+-- site's accounts. This is REQUIRED: the objects below use auth.uid() and
+-- reference auth.users, which only exist in the project that owns the site's
+-- auth users.
+--
+--   NOT ForgeCustomer's database — that holds commercial/billing truth and the
+--   website only reaches it through the /api/forge/* proxy, never directly.
+--   NOT DataForge — unrelated service.
+--
+-- Forge_Command later connects to THIS SAME project with the service role to
+-- write operator replies. All support-chat data lives in this one auth project.
+-- ===========================================================================
+--
 -- Apply in the Supabase SQL editor or via `supabase db push`. Row-level
 -- security scopes every row to its owner. Operator replies are written by
 -- Forge_Command using the service role, which bypasses RLS — the website never

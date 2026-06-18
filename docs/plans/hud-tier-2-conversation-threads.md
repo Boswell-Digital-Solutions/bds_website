@@ -4,6 +4,21 @@
 **Depends on:** Tier 1 support HUD (merged) — `src/js/hud.js`, `server/intake.ts`
 **Primary operator surface:** Forge_Command (operator replies live there, not on the marketing site)
 
+## Which database the threads live in
+
+The HUD thread tables/RPCs live in the **website's login Supabase project** — the
+one whose URL is in `SUPABASE_URL` on the bds-website Render service, and where
+`Authentication → Users` lists the site's accounts. This is required: the RPCs
+use `auth.uid()` / `auth.users`, which only exist in the project that owns the
+site's auth users, and the website forwards that project's JWT for RLS.
+
+- **Not ForgeCustomer's database** — commercial/billing truth; the website only
+  reaches it via the `/api/forge/*` proxy, never directly. Support chat ≠ billing.
+- **Not DataForge** — unrelated service.
+
+Forge_Command (phase 2d) connects to this same project with the service role to
+write operator replies. All support-chat data stays in this one auth project.
+
 ## Implemented so far (phase 2a)
 
 - **DB:** `db/migrations/0001_hud_threads.sql` — `hud_thread` / `hud_message`
