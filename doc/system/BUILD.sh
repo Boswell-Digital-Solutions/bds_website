@@ -3,7 +3,8 @@ set -euo pipefail
 
 PARTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$PARTS_DIR/../.." && pwd)"
-OUTPUT="${OUTPUT:-doc/BDSSYSTEM.md}"
+DESIGNATION="BDS"
+OUTPUT="${OUTPUT:-doc/${DESIGNATION}SYSTEM.md}"
 VALIDATOR="$PARTS_DIR/validate_snapshots.sh"
 
 mkdir -p "$(dirname "$ROOT_DIR/$OUTPUT")"
@@ -35,4 +36,4 @@ cp "$TMP_OUTPUT" "$ROOT_DIR/$OUTPUT"
 chmod 664 "$ROOT_DIR/$OUTPUT"
 
 LINE_COUNT=$(wc -l < "$ROOT_DIR/$OUTPUT")
-echo "$OUTPUT assembled: $LINE_COUNT lines"
+echo "$OUTPUT assembled: $LINE_COUNT lines (BUILD_OK)"
