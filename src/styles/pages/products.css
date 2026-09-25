@@ -91,6 +91,21 @@
   object-fit: cover;
 }
 
+/* Keep the AuthorForge illustration uncropped and preserve its own lighting. */
+.forge-image--authorforge-art {
+  aspect-ratio: 1 / 1;
+  min-height: 0;
+}
+
+.forge-image--authorforge-art img {
+  min-height: 0;
+  object-fit: contain;
+}
+
+.forge-image--authorforge-art::after {
+  display: none;
+}
+
 .forge-body {
   padding: 26px;
 }
