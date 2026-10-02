@@ -509,14 +509,14 @@ function validateSameOriginRedirect(value: unknown, field: string, expectedPath:
 
   let parsed: URL;
   try {
-    parsed = raw.startsWith("/") ? new URL(raw, "https://boswelldigitalsolutions.com") : new URL(raw);
+    parsed = raw.startsWith("/") ? new URL(raw, "https://bds-digitalsolutions.com") : new URL(raw);
   } catch {
     throw new HttpError(400, "INVALID_REDIRECT", `${field} is invalid.`);
   }
 
   const allowedOrigin = new Set([
-    "https://boswelldigitalsolutions.com",
-    "https://www.boswelldigitalsolutions.com",
+    "https://bds-digitalsolutions.com",
+    "https://www.bds-digitalsolutions.com",
     "http://127.0.0.1",
     "http://localhost",
   ]);

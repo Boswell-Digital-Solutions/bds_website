@@ -28,6 +28,8 @@ jobs:
         run: bun test tests
       - name: Governed egress boundary
         run: bun run tools/qc/no-side-door.ts
+      - name: Canonical website domain
+        run: bun run tools/qc/canonical-domain.ts
       - name: StateForge tests and positive/negative fixture verification
         run: bun run qc:stateforge
       - name: Generated documentation parity
