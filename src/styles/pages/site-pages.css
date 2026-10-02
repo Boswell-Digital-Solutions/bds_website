@@ -339,6 +339,19 @@ pre.mermaid {
   background: rgba(255, 255, 255, 0.035);
 }
 
+/* Two-column fact table (media.html) that must fit a phone without scrolling. */
+.page-table--compact {
+  min-width: 0;
+}
+
+.page-table--compact th[scope="row"] {
+  width: 34%;
+}
+
+.page-table--compact td {
+  overflow-wrap: anywhere;
+}
+
 .page-table th,
 .page-table td {
   padding: 1rem 1.1rem;
