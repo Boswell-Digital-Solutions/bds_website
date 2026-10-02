@@ -53,7 +53,7 @@ function template() {
       </button>
     </div>
 
-    <section class="hud-panel" id="hud-panel" role="dialog" aria-label="BDS support" aria-hidden="true">
+    <section class="hud-panel" id="hud-panel" role="dialog" aria-label="BDS support" aria-hidden="true" inert>
       <header class="hud-panel__header">
         <span class="hud-panel__title">BDS Support</span>
         <button class="hud-panel__close" id="hud-close" aria-label="Close support panel">
@@ -177,6 +177,7 @@ function mount() {
     overlay.classList.add("hud-overlay--visible");
     dock.dataset.open = "true";
     panel.setAttribute("aria-hidden", "false");
+    panel.inert = false;
     trigger.setAttribute("aria-expanded", "true");
     close.focus();
     refreshStatus();
@@ -187,6 +188,8 @@ function mount() {
     overlay.classList.remove("hud-overlay--visible");
     dock.dataset.open = "false";
     panel.setAttribute("aria-hidden", "true");
+    // inert keeps the closed panel's controls out of the tab order (WCAG aria-hidden-focus).
+    panel.inert = true;
     trigger.setAttribute("aria-expanded", "false");
     trigger.focus();
   };

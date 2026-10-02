@@ -13,7 +13,7 @@
   /* ---- Text Colors ---- */
   --text-primary:         #E5E7EB;    /* Headlines, primary body */
   --text-secondary:       #9CA3AF;    /* Subtext, metadata */
-  --text-muted:           #6B7280;    /* Labels, small UI text */
+  --text-muted:           #8B95A7;    /* Labels, small UI text (WCAG AA: 4.9:1 or better on every navy surface) */
   --border-divider:       #273449;    /* Section separation, subtle borders */
 
   /* ---- Accent (Logo Orange) ---- */

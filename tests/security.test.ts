@@ -392,3 +392,57 @@ describe("hud message payload", () => {
     expect(() => validateMessage({ message: "ok", author: "operator" })).toThrow();
   });
 });
+
+describe("discovery: sitemap, robots, structured data (BDS-WEB-PR-v0.1 CP4)", () => {
+  const repo = join(import.meta.dir, "..");
+  const CANONICAL = "https://bds-digitalsolutions.com";
+  const read = (path: string) => readFileSync(join(repo, path), "utf8");
+  const sitemapUrls = () => [...read("sitemap.xml").matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
+
+  test("robots.txt and sitemap.xml are published by the explicit route map", () => {
+    expect(resolvePublicFile(root, "/robots.txt").relativePath).toBe("robots.txt");
+    expect(resolvePublicFile(root, "/sitemap.xml").relativePath).toBe("sitemap.xml");
+    expect(resolvePublicFile(root, "/sitemap.xml").contentType).toBe("application/xml; charset=utf-8");
+  });
+
+  test("the sitemap lists exactly the canonical URL of every indexable page, plus /apps", () => {
+    const expected = readdirSync(repo, { recursive: true })
+      .map(String)
+      .filter((path) => path.endsWith(".html") && !/^(node_modules|out|dist|docs|doc)\//.test(path))
+      .map((path) => read(path))
+      .filter((html) => !html.includes('name="robots" content="noindex"'))
+      .map((html) => html.match(/<link rel="canonical" href="([^"]+)"/)?.[1])
+      .filter((url): url is string => Boolean(url));
+    expect(sitemapUrls().sort()).toEqual([...expected, `${CANONICAL}/apps`].sort());
+  });
+
+  test("every sitemap URL uses the canonical host and no customer surface is listed", () => {
+    for (const url of sitemapUrls()) {
+      expect(url.startsWith(`${CANONICAL}/`), url).toBe(true);
+      expect(url).not.toMatch(/\/(login|account|checkout)/);
+    }
+  });
+
+  test("robots.txt keeps the customer exclusions and points at the sitemap", () => {
+    const robots = read("robots.txt");
+    for (const path of ["/login.html", "/account.html", "/account/", "/checkout/"]) {
+      expect(robots).toContain(`Disallow: ${path}`);
+    }
+    expect(robots).toContain(`Sitemap: ${CANONICAL}/sitemap.xml`);
+  });
+
+  test("Media Center JSON-LD parses and carries only stable public facts", () => {
+    const html = read("media.html");
+    const blocks = [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)];
+    expect(blocks).toHaveLength(1);
+    const data = JSON.parse(blocks[0][1]);
+    expect(Object.keys(data).sort()).toEqual(
+      ["@context", "@id", "@type", "address", "alternateName", "email", "founder", "logo", "name", "url"].sort()
+    );
+    expect(Object.keys(data.founder).sort()).toEqual(["@id", "@type", "jobTitle", "name", "url"]);
+    for (const url of [data.url, data.logo, data.founder.url, data["@id"], data.founder["@id"]]) {
+      expect(url.startsWith(`${CANONICAL}/`), url).toBe(true);
+    }
+    expect(statSync(join(repo, new URL(data.logo).pathname)).isFile()).toBe(true);
+  });
+});

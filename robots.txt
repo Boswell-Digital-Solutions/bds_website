@@ -6,3 +6,5 @@ Disallow: /login.html
 Disallow: /account.html
 Disallow: /account/
 Disallow: /checkout/
+
+Sitemap: https://bds-digitalsolutions.com/sitemap.xml

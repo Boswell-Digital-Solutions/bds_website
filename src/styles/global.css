@@ -113,7 +113,7 @@ p {
 
 .btn-primary {
   background: var(--accent);
-  color: #fff;
+  color: var(--bg-primary); /* navy on orange: 6.4:1 (white was 2.8:1) */
 }
 
 .btn-primary:hover {
@@ -258,7 +258,7 @@ p {
   top: -100%;
   left: var(--space-2);
   background: var(--accent);
-  color: #fff;
+  color: var(--bg-primary);
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius);
   z-index: 9999;
