@@ -72,6 +72,7 @@
         <p class="page-hero__lede">This page is for journalists, podcasters, and event organizers. It gives official facts about the company, its founder, and AuthorForge, and it tells you how to ask for an interview.</p>
         <div class="page-actions">
           <a href="#media-contact" class="btn btn-primary">Request an Interview</a>
+          <a href="#press-assets" class="btn btn-ghost">Press Assets</a>
           <a href="#company-facts" class="btn btn-ghost">Company Facts</a>
           <a href="#authorforge" class="btn btn-ghost">AuthorForge</a>
           <a href="#founder" class="btn btn-ghost">Founder Background</a>
@@ -202,6 +203,40 @@
         </div>
       </section>
 
+      <section class="page-section" id="press-assets" aria-labelledby="media-assets-heading">
+        <div class="page-section__head">
+          <h2 id="media-assets-heading">Press Assets</h2>
+          <p>These images are approved for editorial use: news coverage, interviews, reviews, and event listings about Boswell Digital Solutions, its founder, or AuthorForge.</p>
+        </div>
+        <div class="page-grid page-grid--2">
+          <article class="page-card">
+            <img src="/src/assets/media/bds/bds-seal-thumb-320.webp" alt="Boswell Digital Solutions company seal: a circular silver and navy emblem with the BDS monogram and the words Build, Integrate, Empower" width="160" height="160" loading="lazy" class="media-asset__thumb">
+            <h3>BDS company seal</h3>
+            <p class="page-note">WebP, 500 × 500, transparent background. Web resolution; a higher-resolution file is available on request.</p>
+            <p><a class="page-inline-link" href="/src/assets/media/bds/bds-seal-500.webp" download>Download the seal</a></p>
+          </article>
+          <article class="page-card">
+            <img src="/src/assets/media/bds/bds-wordmark-728x308.webp" alt="BDS wordmark in navy and orange" width="240" height="102" loading="lazy" class="media-asset__thumb">
+            <h3>BDS wordmark</h3>
+            <p class="page-note">WebP, 728 × 308, on a solid black background.</p>
+            <p><a class="page-inline-link" href="/src/assets/media/bds/bds-wordmark-728x308.webp" download>Download the wordmark</a></p>
+          </article>
+          <article class="page-card">
+            <img src="/src/assets/media/founder/charles-boswell-portrait-thumb-320.webp" alt="Portrait of Charles Boswell, founder of Boswell Digital Solutions" width="160" height="180" loading="lazy" class="media-asset__thumb">
+            <h3>Founder portrait</h3>
+            <p class="page-note">WebP, 2189 × 2468. Credit: Boswell Digital Solutions.</p>
+            <p><a class="page-inline-link" href="/src/assets/media/founder/charles-boswell-portrait-2189x2468.webp" download>Download the portrait</a></p>
+          </article>
+          <article class="page-card">
+            <img src="/src/assets/images/products/authorforge-card-600.webp" alt="AuthorForge artwork: an anvil and quill" width="160" height="160" loading="lazy" class="media-asset__thumb">
+            <h3>AuthorForge artwork</h3>
+            <p class="page-note">WebP, 1024 × 1024. AuthorForge is in development; please describe it as such.</p>
+            <p><a class="page-inline-link" href="/src/assets/media/authorforge/authorforge-artwork-1024.webp" download>Download the artwork</a></p>
+          </article>
+        </div>
+        <p class="page-note">Editorial use only. Do not alter, recolor, crop into, or animate the seal or wordmark, and do not use them to suggest endorsement, partnership, or sponsorship. For any other use, ask first.</p>
+      </section>
+
       <section class="page-section" aria-labelledby="media-news-heading">
         <article class="page-card">
           <h2 id="media-news-heading">News and Announcements</h2>
@@ -209,12 +244,72 @@
         </article>
       </section>
 
-      <section class="page-section" id="media-contact" aria-labelledby="media-contact-heading">
-        <div class="page-callout">
-          <h2 id="media-contact-heading">Media Contact</h2>
-          <p>To request an interview or information, email <a href="mailto:charlesboswell@boswelldigitalsolutions.com">charlesboswell@boswelldigitalsolutions.com</a>.</p>
-          <p>Please include your name and outlet or organization, the topic, the interview format, and your deadline. A person reads every request.</p>
-          <p>You can also use the <a class="page-inline-link" href="/contact.html">contact form</a>.</p>
+      <section class="page-section media-contact" id="media-contact" aria-labelledby="media-contact-heading">
+        <div class="page-grid page-grid--2">
+          <article class="page-card">
+            <h2 id="media-contact-heading">Media Inquiry</h2>
+            <p class="page-form__help">A person reads every request. If the form is unavailable, email <a href="mailto:charlesboswell@boswelldigitalsolutions.com">charlesboswell@boswelldigitalsolutions.com</a>.</p>
+            <form
+              class="page-form"
+              action="mailto:charlesboswell@boswelldigitalsolutions.com"
+              method="post"
+              enctype="text/plain"
+              data-intake-form
+              data-fallback-email="charlesboswell@boswelldigitalsolutions.com"
+            >
+              <div class="page-field">
+                <label for="media-name">Name</label>
+                <input id="media-name" name="name" type="text" autocomplete="name" required maxlength="120">
+              </div>
+              <div class="page-field">
+                <label for="media-email">Email</label>
+                <input id="media-email" name="email" type="email" autocomplete="email" required maxlength="254">
+              </div>
+              <div class="page-field">
+                <label for="media-outlet">Outlet or organization</label>
+                <input id="media-outlet" name="outlet" type="text" autocomplete="organization" maxlength="160" data-message-field="Outlet">
+              </div>
+              <div class="page-field">
+                <label for="media-topic">Topic</label>
+                <input id="media-topic" name="topic" type="text" maxlength="200" data-message-field="Topic">
+              </div>
+              <div class="page-field">
+                <label for="media-format">Format</label>
+                <select id="media-format" name="format" data-message-field="Format">
+                  <option value="">Not sure yet</option>
+                  <option>Written interview</option>
+                  <option>Phone or video interview</option>
+                  <option>Podcast</option>
+                  <option>Event or panel</option>
+                  <option>Background information only</option>
+                </select>
+              </div>
+              <div class="page-field">
+                <label for="media-deadline">Deadline</label>
+                <input id="media-deadline" name="deadline" type="text" maxlength="80" placeholder="For example: Friday, October 9" data-message-field="Deadline">
+              </div>
+              <div class="page-field">
+                <label for="media-message">Message</label>
+                <textarea id="media-message" name="message" required maxlength="4400"></textarea>
+              </div>
+              <div class="page-field page-field--honeypot" aria-hidden="true">
+                <label for="media-website">Website</label>
+                <input id="media-website" name="website" type="text" tabindex="-1" autocomplete="off">
+              </div>
+              <input type="hidden" name="reason" value="Media / press inquiry">
+              <input type="hidden" name="source_page" value="media.html">
+              <p class="page-form__status" data-form-status role="status" aria-live="polite"></p>
+              <button type="submit" class="btn btn-primary" data-submit-button>Send Request</button>
+            </form>
+            <noscript>
+              <p class="page-form__help">JavaScript is required for the online form. Email <a href="mailto:charlesboswell@boswelldigitalsolutions.com">charlesboswell@boswelldigitalsolutions.com</a> instead.</p>
+            </noscript>
+          </article>
+          <aside class="page-callout">
+            <h3>Media contact</h3>
+            <p><a href="mailto:charlesboswell@boswelldigitalsolutions.com">charlesboswell@boswelldigitalsolutions.com</a></p>
+            <p>Please include your outlet, topic, preferred format, and deadline. No response time is guaranteed.</p>
+          </aside>
         </div>
       </section>
     </div>
@@ -229,5 +324,6 @@
   </footer>
 
   <script type="module" src="/src/js/site.js"></script>
+  <script type="module" src="/src/js/contact-form.js"></script>
 </body>
 </html>

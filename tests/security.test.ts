@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { readdirSync, readFileSync } from "node:fs";
+import { readdirSync, readFileSync, statSync } from "node:fs";
 import type { IncomingMessage } from "node:http";
 import { join } from "node:path";
 
@@ -306,6 +306,72 @@ describe("intake contact payload", () => {
 
   test("rejects unknown fields", () => {
     expect(() => validateContactPayload({ ...valid, role: "admin" })).toThrow();
+  });
+
+  test("accepts a media inquiry from the Media Center (BDS-WEB-PR-v0.1 CP3)", () => {
+    const payload = validateContactPayload({
+      ...valid,
+      reason: "Media / press inquiry",
+      source_page: "media.html",
+      message: "Outlet: Example Times\nDeadline: Friday\n\nInterview request.",
+    });
+    expect(payload.reason).toBe("Media / press inquiry");
+    expect(payload.source_page).toBe("media.html");
+  });
+
+  test("structured media fields cannot travel as their own keys", () => {
+    for (const key of ["outlet", "topic", "format", "deadline"]) {
+      expect(() =>
+        validateContactPayload({ ...valid, reason: "Media / press inquiry", source_page: "media.html", [key]: "x" })
+      ).toThrow();
+    }
+    expect(() => validateContactPayload({ ...valid, reason: "Press", source_page: "media.html" })).toThrow();
+  });
+});
+
+describe("press assets (BDS-WEB-PR-v0.1 CP3)", () => {
+  const repo = join(import.meta.dir, "..");
+  // Every file under src/assets/media is published. Adding one is a deliberate,
+  // reviewed change to this list.
+  const APPROVED = [
+    "authorforge/authorforge-artwork-1024.webp",
+    "bds/bds-seal-500.webp",
+    "bds/bds-seal-thumb-320.webp",
+    "bds/bds-wordmark-728x308.webp",
+    "founder/charles-boswell-portrait-2189x2468.webp",
+    "founder/charles-boswell-portrait-thumb-320.webp",
+  ];
+
+  test("the media asset tree holds only approved files", () => {
+    const present = readdirSync(join(repo, "src/assets/media"), { recursive: true })
+      .map(String)
+      .filter((path) => !statSync(join(repo, "src/assets/media", path)).isDirectory())
+      .sort();
+    expect(present).toEqual(APPROVED);
+  });
+
+  test("approved assets are served and traversal out of the tree is refused", () => {
+    for (const asset of APPROVED) {
+      expect(resolvePublicFile(root, `/src/assets/media/${asset}`).relativePath).toBe(`src/assets/media/${asset}`);
+    }
+    expect(() => resolvePublicFile(root, "/src/assets/media/../../docs/plans/x.md")).toThrow();
+    expect(() => resolvePublicFile(root, "/src/assets/media/")).toThrow();
+  });
+
+  test("every Media Center download and image points at an existing approved file", () => {
+    const html = readFileSync(join(repo, "media.html"), "utf8");
+    const downloads = [...html.matchAll(/href="\/src\/assets\/media\/([^"]+)" download/g)].map((m) => m[1]);
+    expect(downloads.sort()).toEqual(APPROVED.filter((path) => !path.includes("-thumb-")));
+    for (const [, src] of html.matchAll(/<img src="\/(src\/assets\/[^"]+)"/g)) {
+      expect(statSync(join(repo, src)).isFile(), src).toBe(true);
+    }
+  });
+
+  test("the media form posts the media reason and source through the intake lane", () => {
+    const html = readFileSync(join(repo, "media.html"), "utf8");
+    expect(html).toContain('<input type="hidden" name="reason" value="Media / press inquiry">');
+    expect(html).toContain('<input type="hidden" name="source_page" value="media.html">');
+    expect(html).toContain('<script type="module" src="/src/js/contact-form.js"></script>');
   });
 });
 
