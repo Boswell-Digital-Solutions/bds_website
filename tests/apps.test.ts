@@ -12,6 +12,23 @@ import { handleAppsRoute } from "../server/apps.ts";
 const PRODUCTS = [
   {
     schema: "WebsiteProductManifest.v1",
+    slug: "preview-app",
+    name: "Preview App",
+    status: "coming_soon",
+    visibility: "public",
+    version: "0.1.0",
+    summary: "A listed application that is not released yet.",
+    source: { provider: "github", repoOwner: "Boswecw", repoName: "Preview-App", commitSha: "ccc333" },
+    links: { launchUrl: "/preview.html" },
+    access: { requiresLogin: false, requiresEntitlement: false, publicListing: true },
+    timestamps: {
+      goLiveAt: "2020-01-01T00:00:00-05:00",
+      goLiveTimezone: "America/New_York",
+      updatedAt: "2020-01-01T00:00:00-05:00",
+    },
+  },
+  {
+    schema: "WebsiteProductManifest.v1",
     slug: "visible-app",
     name: "Visible App",
     status: "live",
@@ -129,6 +146,18 @@ describe("apps route", () => {
     expect(response.body).toContain("Visible App");
     expect(response.body).not.toContain("Future App"); // future go-live
     expect(response.body).not.toContain("Hidden App"); // hidden visibility
+  });
+
+  test("only a live product is offered as openable or shows a go-live date", async () => {
+    const live = await route("GET", "/apps/visible-app");
+    expect(live.response.body).toContain("Open Visible App");
+    const preview = await route("GET", "/apps/preview-app");
+    expect(preview.response.statusCode).toBe(200);
+    expect(preview.response.body).toContain("About Preview App");
+    expect(preview.response.body).not.toContain("Open Preview App");
+    expect(preview.response.body).toContain("Go live: not yet announced");
+    const listing = await route("GET", "/apps");
+    expect(listing.response.body).toContain("Release not yet announced");
   });
 
   test("detail renders a visible product", async () => {

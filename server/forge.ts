@@ -440,7 +440,19 @@ function validateProvision(input: Record<string, unknown>): Record<string, unkno
   return output;
 }
 
+// Purchases are paused until AuthorForge is released (operator decision,
+// 2026-10-02). Flip to true to reopen; src/js/forge/pricing.js carries the
+// matching PURCHASES_OPEN switch for the page.
+export const CHECKOUT_OPEN = false;
+
 function validateCheckout(input: Record<string, unknown>): Record<string, unknown> {
+  if (!CHECKOUT_OPEN) {
+    throw new HttpError(503, "CHECKOUT_PAUSED", "Purchases are not open yet.");
+  }
+  return validateCheckoutBody(input);
+}
+
+export function validateCheckoutBody(input: Record<string, unknown>): Record<string, unknown> {
   rejectUnknown(input, new Set(["plan_key", "success_url", "cancel_url"]));
   const planKey = requiredString(input.plan_key, "plan_key", 1, 128, /^[A-Za-z0-9._:-]+$/);
   const successUrl = validateSameOriginRedirect(input.success_url, "success_url", "/checkout/success.html");

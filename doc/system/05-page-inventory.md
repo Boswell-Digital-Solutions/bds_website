@@ -55,8 +55,11 @@ or labeled as in development. For this reason the page:
 
 - labels AuthorForge "in development", because the Author-Forge repository has no
   published release;
-- omits the SDVOSB designation until certification evidence is on record;
-- names "military service" without a branch, matching `founder.html`.
+- states "U.S. Navy veteran" and "service-disabled veteran-owned small business".
+  The operator supplied VA evidence of Navy service (1993–1997, honorable) and a
+  service-connected disability. The evidence is not stored in this repository, and
+  the page publishes no rating, condition, or identifier. This is an ownership
+  statement, not an SBA VetCert certification claim.
 
 The page publishes no downloadable press assets. Approved assets come with CP3.
 

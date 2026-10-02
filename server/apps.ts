@@ -163,7 +163,7 @@ function renderAppDetail(product: WebsiteProductManifestV1): string {
             <h1>${escapeHtml(product.name)}</h1>
             <p class="page-hero__lede">${escapeHtml(product.summary)}</p>
             <div class="apps-actions">
-              <a href="${escapeAttribute(launchHref)}" class="btn btn-primary">Open ${escapeHtml(product.name)}</a>
+              <a href="${escapeAttribute(launchHref)}" class="btn btn-primary">${product.status === "live" ? "Open" : "About"} ${escapeHtml(product.name)}</a>
               ${pricingHref ? `<a href="${escapeAttribute(pricingHref)}" class="btn btn-ghost">Pricing</a>` : ""}
             </div>
           </section>
@@ -175,7 +175,7 @@ function renderAppDetail(product: WebsiteProductManifestV1): string {
               <div class="apps-meta">
                 <span>Status: ${escapeHtml(product.status)}</span>
                 <span>Version: ${escapeHtml(product.version ?? "unlabeled")}</span>
-                <span>Go live: ${escapeHtml(formatDate(product.timestamps.goLiveAt))}</span>
+                <span>Go live: ${product.status === "live" ? escapeHtml(formatDate(product.timestamps.goLiveAt)) : "not yet announced"}</span>
               </div>
             </article>
 
@@ -205,7 +205,7 @@ function renderAppCard(product: WebsiteProductManifestV1): string {
       <p>${escapeHtml(product.summary)}</p>
       <div class="apps-card__meta">
         <span>${escapeHtml(product.source.repoOwner)}/${escapeHtml(product.source.repoName)}</span>
-        <span>${escapeHtml(formatDate(product.timestamps.goLiveAt))}</span>
+        <span>${product.status === "live" ? escapeHtml(formatDate(product.timestamps.goLiveAt)) : "Release not yet announced"}</span>
       </div>
       <div class="apps-actions apps-actions--compact">
         <a href="/apps/${escapeAttribute(product.slug)}" class="btn btn-primary">View App</a>
