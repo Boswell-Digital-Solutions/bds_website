@@ -582,6 +582,26 @@ Key boundaries enforced in code:
   `POST /v1/billing-portal` mints a portal session (origin-locked `return_url`); the
   cancel/switch result reprojects via webhook. The website never holds a cancel/plan-change
   surface of its own.
+- Checkout `success_url`/`cancel_url` and portal `return_url` are origin-locked to the
+  canonical website domain (`https://bds-digitalsolutions.com`, plus `www.`) or a
+  loopback dev origin, and to one exact path each. The former website domain
+  (`boswelldigitalsolutions.com`) no longer resolves and is not accepted.
+
+## Canonical Website Domain
+
+The canonical public website is `https://bds-digitalsolutions.com`
+(BDS-WEB-PR-v0.1 CP1). All `rel=canonical`, `og:url`, `og:image`, `twitter:image`,
+`/apps` generated canonicals, and the `security.txt` `Policy`/`Canonical` fields use
+it. The in-code host allowlist (`DEFAULT_ALLOWED_HOSTS`), the origin fallback in
+`server/security/http.ts`, and `render.yaml` `BDS_ALLOWED_HOSTS` name the same host.
+
+Business email stays on `boswelldigitalsolutions.com`
+(`charlesboswell@boswelldigitalsolutions.com`). Mailbox addresses are not website
+URLs and are not rewritten.
+
+`tools/qc/canonical-domain.ts` (part of `bun run qc:security` and CI) fails on any
+former-domain web host in the repository outside `docs/`, and exempts `@`-prefixed
+mailbox values.
 
 Login reuses Supabase; ForgeCustomer validates JWTs from the same project.
 
@@ -795,7 +815,7 @@ redirect alone.**
 
 The one subscription **write** offered here is self-service billing: a "Manage billing &
 subscription" button posts `POST /v1/billing-portal` (`{ return_url }`, origin-locked to
-`/account.html`) and sends the browser to the returned Stripe **Customer Portal** URL, where
+`https://bds-digitalsolutions.com/account.html`) and sends the browser to the returned Stripe **Customer Portal** URL, where
 the customer can cancel, switch plan, or update their card. Like checkout, this is a door,
 not a mutation — the change reprojects via the ForgeCustomer webhook and shows on next load.
 A free-baseline account (no Stripe customer) gets a friendly inline `NO_BILLING_ACCOUNT`

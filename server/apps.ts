@@ -111,7 +111,7 @@ function renderAppsListing(products: WebsiteProductManifestV1[]): string {
   return pageShell({
     title: "Applications - Boswell Digital Solutions",
     description: "Public application catalog for Boswell Digital Solutions products.",
-    canonical: "https://boswelldigitalsolutions.com/apps",
+    canonical: "https://bds-digitalsolutions.com/apps",
     body: `
       <main id="main" class="content-page apps-page">
         <div class="container">
@@ -146,7 +146,7 @@ function renderAppDetail(product: WebsiteProductManifestV1): string {
   return pageShell({
     title: `${product.name} - Boswell Digital Solutions`,
     description: product.summary,
-    canonical: `https://boswelldigitalsolutions.com/apps/${product.slug}`,
+    canonical: `https://bds-digitalsolutions.com/apps/${product.slug}`,
     body: `
       <main id="main" class="content-page apps-page">
         <div class="container">

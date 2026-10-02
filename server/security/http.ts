@@ -21,8 +21,8 @@ export const LIMITS = {
 
 const LOCAL_HOSTS = new Set(["127.0.0.1", "localhost", "[::1]", "::1"]);
 const DEFAULT_ALLOWED_HOSTS = [
-  "boswelldigitalsolutions.com",
-  "www.boswelldigitalsolutions.com",
+  "bds-digitalsolutions.com",
+  "www.bds-digitalsolutions.com",
   "127.0.0.1",
   "localhost",
   "[::1]",
@@ -522,7 +522,7 @@ function isAllowedOrigin(origin: string, request: IncomingMessage): boolean {
 
   return (
     parsed.protocol === "https:" &&
-    (hostname === "boswelldigitalsolutions.com" || hostname === "www.boswelldigitalsolutions.com")
+    (hostname === "bds-digitalsolutions.com" || hostname === "www.bds-digitalsolutions.com")
   );
 }
 

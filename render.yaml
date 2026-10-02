@@ -26,7 +26,7 @@ services:
       # Render's internal /healthz check is not rejected. Trim the onrender host
       # once the custom domain + TLS cutover is complete.
       - key: BDS_ALLOWED_HOSTS
-        value: bds-website.onrender.com,boswelldigitalsolutions.com,www.boswelldigitalsolutions.com,127.0.0.1,localhost,[::1],::1
+        value: bds-website.onrender.com,bds-digitalsolutions.com,www.bds-digitalsolutions.com,127.0.0.1,localhost,[::1],::1
       # Values are environment-specific; Render prompts for them when the
       # Blueprint is created (sync: false keeps them out of the repo).
       # Until they are set the static site still serves and the BFF fails

@@ -1,15 +1,20 @@
 import { describe, expect, test } from "bun:test";
 
+import type { IncomingMessage } from "node:http";
+
 import {
   LIMITS,
   normalizeBearerAuthorization,
   normalizeIdempotencyKey,
   parseJsonObject,
+  validateAllowedHost,
+  validateSameOrigin,
 } from "../server/security/http.ts";
 import { resolvePublicFile } from "../server/security/publication.ts";
 import { findPolicy } from "../server/forge.ts";
 import { validateContactPayload } from "../server/intake.ts";
 import { validateMessage } from "../server/hud.ts";
+import { findFormerDomainWebRefs } from "../tools/qc/canonical-domain.ts";
 import {
   isPubliclyVisibleProduct,
   primaryProductHref,
@@ -81,9 +86,84 @@ describe("forge BFF allowlist", () => {
     expect(() => policy?.validateBody?.({ return_url: "https://x.com/elsewhere" })).toThrow();
     expect(
       policy?.validateBody?.({
-        return_url: "https://boswelldigitalsolutions.com/account.html",
+        return_url: "https://bds-digitalsolutions.com/account.html",
       })
-    ).toEqual({ return_url: "https://boswelldigitalsolutions.com/account.html" });
+    ).toEqual({ return_url: "https://bds-digitalsolutions.com/account.html" });
+  });
+});
+
+describe("canonical website domain (BDS-WEB-PR-v0.1 CP1)", () => {
+  // Built at runtime so the canonical-domain QC scan does not flag this file.
+  const FORMER = ["boswelldigitalsolutions", "com"].join(".");
+  const CANONICAL = "bds-digitalsolutions.com";
+
+  function request(headers: Record<string, string>): IncomingMessage {
+    return { headers } as unknown as IncomingMessage;
+  }
+
+  function withoutEnv(names: string[], run: () => void): void {
+    const saved = names.map((name) => [name, process.env[name]] as const);
+    for (const name of names) delete process.env[name];
+    try {
+      run();
+    } finally {
+      for (const [name, value] of saved) {
+        if (value === undefined) delete process.env[name];
+        else process.env[name] = value;
+      }
+    }
+  }
+
+  test("checkout accepts success/cancel URLs on the canonical domain only", () => {
+    const policy = findPolicy("POST", "/v1/checkout");
+    const body = (host: string) => ({
+      plan_key: "authorforge.pro",
+      success_url: `https://${host}/checkout/success.html`,
+      cancel_url: `https://${host}/checkout/cancel.html`,
+    });
+    expect(policy?.validateBody?.(body(CANONICAL))).toEqual(body(CANONICAL));
+    expect(policy?.validateBody?.(body(`www.${CANONICAL}`))).toEqual(body(`www.${CANONICAL}`));
+    expect(policy?.validateBody?.({ ...body(CANONICAL), success_url: "/checkout/success.html" })).toEqual({
+      ...body(CANONICAL),
+      success_url: "/checkout/success.html",
+    });
+    expect(() => policy?.validateBody?.(body(FORMER))).toThrow();
+    expect(() => policy?.validateBody?.(body(`www.${FORMER}`))).toThrow();
+    expect(() => policy?.validateBody?.(body(`${CANONICAL}.evil.example`))).toThrow();
+    expect(() =>
+      policy?.validateBody?.({ ...body(CANONICAL), success_url: `https://${CANONICAL}/account.html` })
+    ).toThrow();
+  });
+
+  test("billing-portal rejects the former website domain", () => {
+    const policy = findPolicy("POST", "/v1/billing-portal");
+    expect(() => policy?.validateBody?.({ return_url: `https://${FORMER}/account.html` })).toThrow();
+  });
+
+  test("default host allowlist serves the canonical domain and refuses the former one", () => {
+    withoutEnv(["BDS_ALLOWED_HOSTS"], () => {
+      expect(() => validateAllowedHost(request({ host: CANONICAL }))).not.toThrow();
+      expect(() => validateAllowedHost(request({ host: `www.${CANONICAL}` }))).not.toThrow();
+      expect(() => validateAllowedHost(request({ host: FORMER }))).toThrow();
+      expect(() => validateAllowedHost(request({ host: `www.${FORMER}` }))).toThrow();
+    });
+  });
+
+  test("origin fallback accepts the canonical domain and refuses the former one", () => {
+    withoutEnv(["BDS_ALLOWED_ORIGINS"], () => {
+      const from = (origin: string) => request({ host: "internal.example:10000", origin });
+      expect(() => validateSameOrigin(from(`https://${CANONICAL}`))).not.toThrow();
+      expect(() => validateSameOrigin(from(`https://${FORMER}`))).toThrow();
+      expect(() => validateSameOrigin(from(`http://${CANONICAL}`))).toThrow();
+    });
+  });
+
+  test("domain scan flags former web hosts but exempts email addresses", () => {
+    expect(findFormerDomainWebRefs(`<link rel="canonical" href="https://${FORMER}/">`)).toHaveLength(1);
+    expect(findFormerDomainWebRefs(`"www.${FORMER}",`)).toHaveLength(1);
+    expect(findFormerDomainWebRefs(`mailto:charlesboswell@${FORMER}`)).toHaveLength(0);
+    expect(findFormerDomainWebRefs(`email contact@${FORMER}.`)).toHaveLength(0);
+    expect(findFormerDomainWebRefs(`https://${CANONICAL}/media`)).toHaveLength(0);
   });
 });
 

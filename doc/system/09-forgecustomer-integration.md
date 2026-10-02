@@ -111,7 +111,7 @@ redirect alone.**
 
 The one subscription **write** offered here is self-service billing: a "Manage billing &
 subscription" button posts `POST /v1/billing-portal` (`{ return_url }`, origin-locked to
-`/account.html`) and sends the browser to the returned Stripe **Customer Portal** URL, where
+`https://bds-digitalsolutions.com/account.html`) and sends the browser to the returned Stripe **Customer Portal** URL, where
 the customer can cancel, switch plan, or update their card. Like checkout, this is a door,
 not a mutation — the change reprojects via the ForgeCustomer webhook and shows on next load.
 A free-baseline account (no Stripe customer) gets a friendly inline `NO_BILLING_ACCOUNT`
