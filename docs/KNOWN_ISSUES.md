@@ -59,3 +59,11 @@ New observations go below this heading or into existing linked entries. Setup ob
 - Root cause: `cacheControlFor()` in `server/security/publication.ts` reads the request path. Only paths ending in `.html` or `/` get `no-store`.
 - Fix: compute the cache policy from the resolved file (`media.html`), not the request path.
 - Disposition: **open**, low severity. Owner: Charles Boswell.
+
+## KI-BDS-20261002-004: A documentation-only push may redeploy the Render service
+
+- Found: 2026-10-02, CI scope rollout.
+- Evidence: `render.yaml` sets no `autoDeployTrigger` and no `buildFilter`. Render deploys on each push to the watched branch by default. A GitHub Actions `paths` filter cannot stop this.
+- Not verified: the Render dashboard setting for this service. The deploy does not read Markdown, so a documentation-only deploy publishes no new content.
+- Fix: add `buildFilter` with `ignoredPaths` for `docs/**`, `doc/**` and `**/*.md` in `render.yaml`, or set the dashboard auto-deploy to "After CI checks pass". This needs the owner to confirm how the Blueprint is synced.
+- Disposition: **open**, low severity. Owner: Charles Boswell.

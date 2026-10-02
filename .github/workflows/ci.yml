@@ -2,8 +2,18 @@ name: CI
 
 on:
   pull_request:
+    paths:
+      - '**'
+      - '!docs/**'
+      - '!doc/**'
+      - '!**/*.md'
   push:
     branches: [main]
+    paths:
+      - '**'
+      - '!docs/**'
+      - '!doc/**'
+      - '!**/*.md'
 
 permissions:
   contents: read

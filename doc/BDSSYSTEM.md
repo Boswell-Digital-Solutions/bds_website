@@ -723,8 +723,10 @@ bash doc/system/BUILD.sh
 
 ## Current Quality Posture
 
-`.github/workflows/ci.yml` runs on every pull request and push to `main`,
-including documentation changes, with read-only repository permission. One
+`.github/workflows/ci.yml` runs on every pull request and push to `main`
+that changes code, with read-only repository permission. A change that
+touches only documentation does not run it (see "Which CI runs for which
+change"). One
 Ubuntu job runs the app-route/security tests, governed egress guard, and the
 StateForge verifier (which runs its unit suite from its own directory plus
 positive and negative fixtures). It rebuilds `doc/BDSSYSTEM.md` and fails on
@@ -757,6 +759,38 @@ What does not exist yet:
 - broken-link enforcement
 - templating to remove duplicated layout markup
 - production commerce integration tests
+
+## Which CI runs for which change
+
+A change that touches only documentation runs the Documentation CI and no code CI.
+A change that touches any other file runs the code CI.
+A change that touches both runs both.
+The code CI runs only when code changes. No schedule starts a full run.
+
+The `CI` workflow (`.github/workflows/ci.yml`) has a workflow-level `paths` filter on `pull_request` and `push`.
+The filter includes `**` and then excludes `docs/**`, `doc/**` and `**/*.md`.
+The last matching pattern wins.
+A change to `.github/workflows/**` is code, so it runs the code CI.
+
+No documentation path is re-included.
+The route tests, the egress guard, the canonical-domain check, the StateForge verifier and the HUD browser check read HTML, TypeScript, JavaScript, JSON, YAML, XML and CSS files.
+The canonical-domain check skips `docs/`.
+No test or tool reads a Markdown file.
+The server publishes only `*.html`, `src/`, `legal/`, `account/`, `checkout/`, `white-papers/`, `favicon.svg`, `robots.txt` and `sitemap.xml`.
+The site build does not read Markdown, so a Markdown change publishes no content.
+
+The `Documentation CI` workflow (`.github/workflows/documentation.yml`) runs for `docs/**`, `doc/**`, `**/*.md` and its own file.
+It runs `bash doc/system/BUILD.sh` and fails if `git diff --exit-code -- doc` shows a difference.
+
+The repo has no secret scanner workflow today.
+A secret scanner must run on every change, because a documentation file can hold a secret.
+
+Render deploys the service from `render.yaml`.
+Render starts a deploy on each push to the branch it watches. This is Render configuration, not a GitHub workflow.
+The path filter does not stop it.
+
+Do not add a required status check on a path-filtered workflow.
+When the filter skips the workflow, the required check stays pending and blocks the merge.
 
 ## Known Risks
 
