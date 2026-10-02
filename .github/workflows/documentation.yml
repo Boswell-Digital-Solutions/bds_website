@@ -1,0 +1,37 @@
+name: Documentation CI
+
+on:
+  pull_request:
+    paths:
+      - 'docs/**'
+      - 'doc/**'
+      - '**/*.md'
+      - '.github/workflows/documentation.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'doc/**'
+      - '**/*.md'
+      - '.github/workflows/documentation.yml'
+
+concurrency:
+  group: documentation-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  documentation:
+    name: Documentation (system build and snapshots)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Build doc/system and validate snapshots
+        run: bash doc/system/BUILD.sh
+      - name: Fail if the assembled reference differs from the parts
+        run: git diff --exit-code -- doc
