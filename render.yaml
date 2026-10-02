@@ -16,6 +16,17 @@ services:
     buildCommand: bun install
     startCommand: bun run start
     healthCheckPath: /healthz
+    # A documentation-only push must not build or deploy. Render evaluates
+    # these globs from the repository root. Ignoring wins over including, and
+    # an unknown new path still builds (fail-closed). No documentation file is
+    # read by the build or the server, so nothing is re-included here.
+    # render.yaml itself is always processed. Same rule as the CI paths filters.
+    buildFilter:
+      ignoredPaths:
+        - docs/**
+        - doc/**
+        - "*.md"
+        - "**/*.md"
     envVars:
       - key: BUN_VERSION
         value: 1.3.11
