@@ -16,7 +16,7 @@
 | Security | `security.html` | Live security posture and responsible-disclosure page |
 | About | `about.html` | Live company identity page |
 | Founder | `founder.html` | Live founder background and governance-philosophy page |
-| Media Center | `media.html` (served at `/media`, `/media/`, `/media.html`) | Static press page: company snapshot, three boilerplates, founder profile, AuthorForge press section (status: in development), story angles, technical-resource links, news state, media contact. In the main navigation before Contact and in the homepage Company footer group. Media inquiries use email and the existing contact form; no media intake reason exists yet (BDS-WEB-PR-v0.1 CP3). |
+| Media Center | `media.html` (served at `/media`, `/media/`, `/media.html`) | Static press page: company snapshot, three boilerplates, founder profile, AuthorForge press section (status: in development), story angles, technical-resource links, news state, media contact. In the main navigation before Contact and in the homepage Company footer group. It also has press-asset downloads and a media inquiry form on the governed intake lane (BDS-WEB-PR-v0.1 CP3). |
 | Contact | `contact.html` | Live inquiry and support page wired to the public intake service |
 | AuthorForge | `authorforge.html` | Live product detail page |
 | AuthorForge Founder | `authorforge-founder.html` | Live supporting detail page |
@@ -61,7 +61,36 @@ or labeled as in development. For this reason the page:
   the page publishes no rating, condition, or identifier. This is an ownership
   statement, not an SBA VetCert certification claim.
 
-The page publishes no downloadable press assets. Approved assets come with CP3.
+## Press Assets (BDS-WEB-PR-v0.1 CP3)
+
+Approved press assets live under `src/assets/media/` and are served through the
+existing `/src/assets/` prefix. No new route or allowlist entry exists. Every
+file in the tree is published, so the tree holds only operator-approved files.
+`tests/security.test.ts` pins the exact file list. Adding a file means adding it
+to that list in the same reviewed change.
+
+| File | Subject | Format | Disposition |
+|------|---------|--------|-------------|
+| `bds/bds-seal-500.webp` | Canonical BDS company seal | WebP, 500 × 500, transparent | APPROVED_EDITORIAL; web resolution. The source is the operator-supplied seal reference. A higher-resolution original is pending. |
+| `bds/bds-wordmark-728x308.webp` | BDS wordmark | WebP, 728 × 308, black background | APPROVED_EDITORIAL |
+| `founder/charles-boswell-portrait-2189x2468.webp` | Founder portrait | WebP, 2189 × 2468; EXIF/XMP removed, pixels unchanged | APPROVED_EDITORIAL |
+| `authorforge/authorforge-artwork-1024.webp` | AuthorForge artwork | WebP, 1024 × 1024 | APPROVED_EDITORIAL; must be described as in development |
+| `*-thumb-320.webp` | Page previews of the seal and portrait | WebP, 320 px wide | APPROVED_WEB_ONLY (not offered for download) |
+
+The page shows small previews and links to the full files with `download`. A
+full-resolution file is never a page thumbnail.
+
+## Media Inquiry Lane
+
+The media form posts through the existing consultation intake
+(`POST /api/intake/consultation`). It uses `reason = "Media / press inquiry"` and
+`source_page = "media.html"`, both added to the allowlists in `server/intake.ts`.
+Outlet, topic, format, and deadline are visible fields marked
+`data-message-field`. `src/js/contact-form.js` writes them into the message text,
+so the intake contract still accepts only `name`, `email`, `reason`, `message`,
+`source_page`, and `turnstile_token`. An unreachable or unconfigured intake fails
+visibly and shows the business email. An inquiry is a request; any reply stays a
+human action.
 
 ## Homepage Content Blocks
 

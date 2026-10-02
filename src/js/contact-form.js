@@ -65,11 +65,22 @@ if (form instanceof HTMLFormElement) {
       return;
     }
 
+    // Optional structured fields (for example on media.html) travel inside the
+    // message text. The intake contract accepts only the fields below.
+    const details = [];
+    for (const field of form.querySelectorAll("[data-message-field]")) {
+      const value = "value" in field ? String(field.value).trim() : "";
+      if (value) {
+        details.push(`${field.dataset.messageField}: ${value}`);
+      }
+    }
+    const body = String(formData.get("message") || "").trim();
+
     const payload = {
       name: String(formData.get("name") || "").trim(),
       email: String(formData.get("email") || "").trim(),
       reason: String(formData.get("reason") || "").trim(),
-      message: String(formData.get("message") || "").trim(),
+      message: details.length > 0 ? `${details.join("\n")}\n\n${body}` : body,
       source_page: String(formData.get("source_page") || "contact.html").trim()
     };
 

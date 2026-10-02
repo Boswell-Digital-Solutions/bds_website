@@ -339,6 +339,23 @@ pre.mermaid {
   background: rgba(255, 255, 255, 0.035);
 }
 
+/* Press-asset preview on media.html: a fixed-size thumbnail, never the download. */
+.media-asset__thumb {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin-bottom: var(--space-2);
+  border-radius: 8px;
+}
+
+/* The media email is one long unbreakable token; let it wrap on phones. */
+.media-contact a,
+.media-contact .page-card,
+.media-contact .page-callout {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
 /* Two-column fact table (media.html) that must fit a phone without scrolling. */
 .page-table--compact {
   min-width: 0;

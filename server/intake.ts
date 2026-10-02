@@ -22,11 +22,12 @@ const CONTACT_REASONS = new Set([
   "Services / consultation",
   "AuthorForge purchasing",
   "General support",
+  "Media / press inquiry",
 ]);
 
 // Pages permitted to submit through the intake lane. The HUD support messenger
 // is a first-class source alongside the dedicated contact page.
-const CONTACT_SOURCES = new Set(["contact.html", "hud"]);
+const CONTACT_SOURCES = new Set(["contact.html", "hud", "media.html"]);
 
 export async function handleIntakeApi(
   request: IncomingMessage,
