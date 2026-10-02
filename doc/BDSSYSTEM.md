@@ -778,6 +778,7 @@ The canonical-domain check skips `docs/`.
 No test or tool reads a Markdown file.
 The server publishes only `*.html`, `src/`, `legal/`, `account/`, `checkout/`, `white-papers/`, `favicon.svg`, `robots.txt` and `sitemap.xml`.
 The site build does not read Markdown, so a Markdown change publishes no content.
+Render builds follow the same rule: `buildFilter.ignoredPaths` in `render.yaml` skips a build for a documentation-only push.
 
 The `Documentation CI` workflow (`.github/workflows/documentation.yml`) runs for `docs/**`, `doc/**`, `**/*.md` and its own file.
 It runs `bash doc/system/BUILD.sh` and fails if `git diff --exit-code -- doc` shows a difference.
