@@ -11,6 +11,10 @@ import { getSession } from "./supabase.js";
 import { describeForgeError, ForgeError } from "./errors.js";
 
 const FREE_PLAN_KEY = "authorforge_included";
+// Purchases are paused until AuthorForge is released (operator decision,
+// 2026-10-02). The BFF refuses /v1/checkout with the same switch
+// (server/forge.ts CHECKOUT_OPEN), so a hand-built request cannot start one.
+const PURCHASES_OPEN = false;
 const container = document.querySelector("[data-plans]");
 const statusEl = document.querySelector("[data-plans-status]");
 
@@ -24,7 +28,7 @@ function setStatus(state, message) {
 function formatPrice(plan) {
   const price = plan.price ?? plan.pricing ?? null;
   if (!price) {
-    return plan.plan_key === FREE_PLAN_KEY ? "Included" : "";
+    return planKeyOf(plan) === FREE_PLAN_KEY ? "Included" : "";
   }
   const amount = typeof price.amount === "number" ? price.amount : null;
   const currency = (price.currency || "USD").toUpperCase();
@@ -39,22 +43,27 @@ function formatPrice(plan) {
   return interval ? `${formatted} / ${interval}` : formatted;
 }
 
-function isPurchasable(plan) {
-  return plan.plan_key !== FREE_PLAN_KEY;
+// The catalog returns `key`; older payloads used `plan_key`.
+function planKeyOf(plan) {
+  return plan.plan_key ?? plan.key;
+}
+
+function isPaidPlan(plan) {
+  return planKeyOf(plan) !== FREE_PLAN_KEY;
 }
 
 function planCard(plan) {
   const card = document.createElement("article");
   card.className = "page-card forge-plan";
-  if (isPurchasable(plan)) {
+  if (isPaidPlan(plan)) {
     card.classList.add("page-card--accent");
   }
 
-  const name = plan.display_name || plan.name || plan.plan_key;
+  const name = plan.display_name || plan.name || planKeyOf(plan);
   const price = formatPrice(plan);
 
   card.innerHTML = `
-    <div class="page-card__eyebrow">${isPurchasable(plan) ? "Pro" : "Included"}</div>
+    <div class="page-card__eyebrow">${isPaidPlan(plan) ? "Pro" : "Included"}</div>
     <h3>${escapeHtml(name)}</h3>
     ${price ? `<p class="forge-plan__price">${escapeHtml(price)}</p>` : ""}
     ${plan.description ? `<p>${escapeHtml(plan.description)}</p>` : ""}
@@ -63,12 +72,17 @@ function planCard(plan) {
   const actions = document.createElement("div");
   actions.className = "page-actions";
 
-  if (isPurchasable(plan)) {
+  if (isPaidPlan(plan) && !PURCHASES_OPEN) {
+    const note = document.createElement("p");
+    note.className = "page-note";
+    note.textContent = "Not yet available. Purchases open when AuthorForge is released.";
+    card.appendChild(note);
+  } else if (isPaidPlan(plan)) {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "btn btn-primary";
     button.textContent = "Upgrade to Pro";
-    button.addEventListener("click", () => startCheckout(plan.plan_key, button));
+    button.addEventListener("click", () => startCheckout(planKeyOf(plan), button));
     actions.appendChild(button);
   } else {
     const note = document.createElement("p");
@@ -82,6 +96,9 @@ function planCard(plan) {
 }
 
 async function startCheckout(planKey, button) {
+  if (!PURCHASES_OPEN || !planKey) {
+    return;
+  }
   const session = await getSession();
   if (!session) {
     const next = encodeURIComponent("/pricing.html");

@@ -476,8 +476,11 @@ or labeled as in development. For this reason the page:
 
 - labels AuthorForge "in development", because the Author-Forge repository has no
   published release;
-- omits the SDVOSB designation until certification evidence is on record;
-- names "military service" without a branch, matching `founder.html`.
+- states "U.S. Navy veteran" and "service-disabled veteran-owned small business".
+  The operator supplied VA evidence of Navy service (1993–1997, honorable) and a
+  service-connected disability. The evidence is not stored in this repository, and
+  the page publishes no rating, condition, or identifier. This is an ownership
+  statement, not an SBA VetCert certification claim.
 
 The page publishes no downloadable press assets. Approved assets come with CP3.
 
@@ -594,6 +597,12 @@ Key boundaries enforced in code:
 - Entitlements activate from Stripe's webhook-driven projection, never from a
   browser redirect — the checkout success page polls `GET /v1/subscriptions`
   until `grants_cloud: true`.
+- Checkout is paused until AuthorForge is released: the BFF answers
+  `POST /v1/checkout` with `503 CHECKOUT_PAUSED` (`server/forge.ts` `CHECKOUT_OPEN`),
+  and the pricing page shows the paid plan as "Not yet available".
+- Product status and links in `src/lib/products/products.json` are published by
+  Forge_Command (Fleet → Website Publish). Prices live in ForgeCustomer plan
+  versions and Stripe. Neither is authored in this repository.
 - Self-service subscription changes use Stripe's hosted **Customer Portal**:
   `POST /v1/billing-portal` mints a portal session (origin-locked `return_url`); the
   cancel/switch result reprojects via webhook. The website never holds a cancel/plan-change
@@ -702,7 +711,7 @@ What does not exist yet:
 
 ## Known Risks
 
-1. AuthorForge Pro checkout is live through ForgeCustomer (Stripe-hosted) via the `pricing.html` flow; the one-time Standard license still uses contact-based coordination. Checkout correctness depends on a reachable ForgeCustomer and the webhook-driven subscription projection (the success page polls rather than trusting the redirect).
+1. AuthorForge Pro checkout is **paused** until AuthorForge is released (operator decision, 2026-10-02). `src/js/forge/pricing.js` `PURCHASES_OPEN` hides the Upgrade action, and `server/forge.ts` `CHECKOUT_OPEN` makes the BFF refuse `POST /v1/checkout` with `503 CHECKOUT_PAUSED`. To reopen, set both to `true`. The plans themselves stay in ForgeCustomer and Stripe. Before the pause the flow ran through ForgeCustomer (Stripe-hosted) via `pricing.html`; the one-time Standard license still uses contact-based coordination. Checkout correctness depends on a reachable ForgeCustomer and the webhook-driven subscription projection (the success page polls rather than trusting the redirect).
 2. Only AuthorForge has a dedicated detail page today; additional product pages will need the same treatment as the portfolio expands.
 3. The contact form now depends on public intake-service availability; if that service is down, users fall back to business email.
 4. Security and ecosystem claims can outpace implementation if future copy is not kept precise.

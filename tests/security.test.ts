@@ -13,7 +13,7 @@ import {
   validateSameOrigin,
 } from "../server/security/http.ts";
 import { resolvePublicFile } from "../server/security/publication.ts";
-import { findPolicy } from "../server/forge.ts";
+import { CHECKOUT_OPEN, findPolicy, validateCheckoutBody } from "../server/forge.ts";
 import { validateContactPayload } from "../server/intake.ts";
 import { validateMessage } from "../server/hud.ts";
 import { findFormerDomainWebRefs } from "../tools/qc/canonical-domain.ts";
@@ -154,7 +154,7 @@ describe("canonical website domain (BDS-WEB-PR-v0.1 CP1)", () => {
   }
 
   test("checkout accepts success/cancel URLs on the canonical domain only", () => {
-    const policy = findPolicy("POST", "/v1/checkout");
+    const policy = { validateBody: validateCheckoutBody };
     const body = (host: string) => ({
       plan_key: "authorforge.pro",
       success_url: `https://${host}/checkout/success.html`,
@@ -172,6 +172,23 @@ describe("canonical website domain (BDS-WEB-PR-v0.1 CP1)", () => {
     expect(() =>
       policy?.validateBody?.({ ...body(CANONICAL), success_url: `https://${CANONICAL}/account.html` })
     ).toThrow();
+  });
+
+  test("checkout is paused at the BFF until AuthorForge is released", () => {
+    expect(CHECKOUT_OPEN).toBe(false);
+    const policy = findPolicy("POST", "/v1/checkout");
+    const body = {
+      plan_key: "authorforge_pro",
+      success_url: `https://${CANONICAL}/checkout/success.html`,
+      cancel_url: `https://${CANONICAL}/checkout/cancel.html`,
+    };
+    expect(() => policy?.validateBody?.(body)).toThrow("Purchases are not open yet.");
+    // The billing portal stays available for any existing customer.
+    expect(
+      findPolicy("POST", "/v1/billing-portal")?.validateBody?.({
+        return_url: `https://${CANONICAL}/account.html`,
+      })
+    ).toEqual({ return_url: `https://${CANONICAL}/account.html` });
   });
 
   test("billing-portal rejects the former website domain", () => {
