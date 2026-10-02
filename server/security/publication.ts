@@ -18,6 +18,7 @@ const CONTENT_TYPES = new Map([
   [".webp", "image/webp"],
   [".woff", "font/woff"],
   [".woff2", "font/woff2"],
+  [".xml", "application/xml; charset=utf-8"],
 ]);
 
 const PUBLIC_ROUTES = new Map([
@@ -49,8 +50,10 @@ const PUBLIC_ROUTES = new Map([
   ["/meet-smith.html", "meet-smith.html"],
   ["/pricing.html", "pricing.html"],
   ["/products.html", "products.html"],
+  ["/robots.txt", "robots.txt"],
   ["/security.html", "security.html"],
   ["/services.html", "services.html"],
+  ["/sitemap.xml", "sitemap.xml"],
   ["/store.html", "store.html"],
   ["/white-papers", "white-papers/index.html"],
   ["/white-papers/", "white-papers/index.html"],

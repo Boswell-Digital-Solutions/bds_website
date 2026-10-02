@@ -92,6 +92,22 @@ so the intake contract still accepts only `name`, `email`, `reason`, `message`,
 visibly and shows the business email. An inquiry is a request; any reply stays a
 human action.
 
+## Discovery: robots, sitemap, structured data (BDS-WEB-PR-v0.1 CP4)
+
+- `/robots.txt` and `/sitemap.xml` are explicit entries in the public route map.
+  Before CP4 the app served neither. Production `robots.txt` was only Cloudflare's
+  managed content-signal block, with no `User-agent` or `Disallow` lines. Cloudflare
+  places that block in front of the origin file, so the origin rules now apply.
+- `robots.txt` keeps the login, account, and checkout exclusions and adds
+  `Sitemap: https://bds-digitalsolutions.com/sitemap.xml`.
+- `sitemap.xml` lists the canonical URL of every page without `noindex`, plus
+  `/apps`. `/apps/<slug>` detail pages are not listed: Forge_Command publishes that
+  catalog, and a static sitemap would drift from it. A test fails when a page's
+  canonical URL and the sitemap disagree, so a new page must be added to both.
+- `media.html` carries one `application/ld+json` Organization block: legal name,
+  URL, seal logo, media email, Lexington, KY, and founder. These are stable facts
+  only. A test pins the allowed keys.
+
 ## Homepage Content Blocks
 
 `index.html` currently carries the main brand story:

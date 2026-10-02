@@ -48,7 +48,7 @@
   justify-content: center;
   background: var(--accent);
   border-radius: var(--radius);
-  color: #fff;
+  color: var(--bg-primary);
   font-weight: var(--fw-bold);
   font-size: var(--fs-small);
 }
