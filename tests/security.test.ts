@@ -1,6 +1,8 @@
 import { describe, expect, test } from "bun:test";
 
+import { readdirSync, readFileSync } from "node:fs";
 import type { IncomingMessage } from "node:http";
+import { join } from "node:path";
 
 import {
   LIMITS,
@@ -39,6 +41,43 @@ describe("publication manifest", () => {
     expect(() => resolvePublicFile(root, "/docs/page-content-v1.md")).toThrow();
     expect(() => resolvePublicFile(root, "/white-papers/private.docx")).toThrow();
     expect(() => resolvePublicFile(root, "/src/js/../server/forge.ts")).toThrow();
+  });
+
+  test("publishes the Media Center at exactly three aliases (BDS-WEB-PR-v0.1 CP2)", () => {
+    for (const path of ["/media", "/media/", "/media.html"]) {
+      expect(resolvePublicFile(root, path).relativePath).toBe("media.html");
+    }
+    expect(() => resolvePublicFile(root, "/media/releases")).toThrow();
+    expect(() => resolvePublicFile(root, "/media/../server/forge.ts")).toThrow();
+    expect(() => resolvePublicFile(root, "/media/private.html")).toThrow();
+    expect(() => resolvePublicFile(root, "/src/assets/../docs/plans/x.md")).toThrow();
+  });
+});
+
+describe("Media Center navigation (BDS-WEB-PR-v0.1 CP2)", () => {
+  const repo = join(import.meta.dir, "..");
+  const pages = readdirSync(repo, { recursive: true })
+    .map(String)
+    .filter((path) => path.endsWith(".html") && !/^(node_modules|out|dist|docs)\//.test(path));
+
+  test("every page with a Contact nav link also links Media directly before it", () => {
+    let checked = 0;
+    for (const page of pages) {
+      const html = readFileSync(join(repo, page), "utf8");
+      const contact = html.match(/<a href="[^"]*contact\.html" class="site-header__nav-link[^"]*">Contact<\/a>/);
+      if (!contact || page.startsWith("account/")) continue;
+      checked += 1;
+      const before = html.slice(0, contact.index).trimEnd();
+      expect(before.endsWith(">Media</a>"), page).toBe(true);
+    }
+    expect(checked).toBeGreaterThan(20);
+  });
+
+  test("the Media Center keeps its canonical and the business email", () => {
+    const html = readFileSync(join(repo, "media.html"), "utf8");
+    expect(html).toContain('<link rel="canonical" href="https://bds-digitalsolutions.com/media">');
+    expect(html).toContain("mailto:charlesboswell@boswelldigitalsolutions.com");
+    expect(html.match(/<h1[\s>]/g)).toHaveLength(1);
   });
 });
 

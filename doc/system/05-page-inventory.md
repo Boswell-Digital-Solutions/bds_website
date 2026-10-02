@@ -16,6 +16,7 @@
 | Security | `security.html` | Live security posture and responsible-disclosure page |
 | About | `about.html` | Live company identity page |
 | Founder | `founder.html` | Live founder background and governance-philosophy page |
+| Media Center | `media.html` (served at `/media`, `/media/`, `/media.html`) | Static press page: company snapshot, three boilerplates, founder profile, AuthorForge press section (status: in development), story angles, technical-resource links, news state, media contact. In the main navigation before Contact and in the homepage Company footer group. Media inquiries use email and the existing contact form; no media intake reason exists yet (BDS-WEB-PR-v0.1 CP3). |
 | Contact | `contact.html` | Live inquiry and support page wired to the public intake service |
 | AuthorForge | `authorforge.html` | Live product detail page |
 | AuthorForge Founder | `authorforge-founder.html` | Live supporting detail page |
@@ -44,6 +45,20 @@ require a Supabase session (except the dedicated state pages). See §9.
 | Checkout canceled | `checkout/cancel.html` | No-charge return page |
 | Account suspended | `account/suspended.html` | Landing page for `403 CUSTOMER_SUSPENDED` |
 | Account closed | `account/closed.html` | Landing page for closed/deleted accounts |
+
+## Media Center Truth Rules
+
+`media.html` follows BDS-WEB-PR-v0.1. Each material statement is one of: stable
+company fact, current product fact, development statement, or attributed founder
+statement. A statement that cannot be verified against its owning source is omitted
+or labeled as in development. For this reason the page:
+
+- labels AuthorForge "in development", because the Author-Forge repository has no
+  published release;
+- omits the SDVOSB designation until certification evidence is on record;
+- names "military service" without a branch, matching `founder.html`.
+
+The page publishes no downloadable press assets. Approved assets come with CP3.
 
 ## Homepage Content Blocks
 
