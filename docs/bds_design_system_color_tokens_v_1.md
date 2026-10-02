@@ -50,8 +50,8 @@ HEX: #9CA3AF
 Usage: Subtext, metadata, secondary content
 
 Muted Text
-HEX: #6B7280
-Usage: Labels, small UI text
+HEX: #8B95A7 (was #6B7280, which failed WCAG AA on navy; changed by BDS-WEB-PR-v0.1 CP4, 2026-10-02)
+Usage: Labels, small UI text. At least 4.9:1 on every navy surface.
 
 Divider Line
 HEX: #273449
