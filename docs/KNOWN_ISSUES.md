@@ -34,3 +34,28 @@ New observations go below this heading or into existing linked entries. Setup ob
 - Local substitute, 2026-09-25, `43a14d4`: `bun test tests` passed 24/24, `tools/qc/no-side-door.ts` passed, `qc:stateforge` passed, and the documentation build produced no drift.
 - Fix: clear the billing lock in the GitHub account or organization billing settings, then re-run CI on `main`.
 - Disposition: **open**. Owner: Charles Boswell. Close when CI starts and passes on `main`.
+- Evidence, 2026-10-02: GitHub Actions CI started and passed on PRs #35–#40 (both jobs, including the HUD browser job). The lock appears cleared. Closure still needs a passing CI run on `main` itself.
+
+## KI-BDS-20261002-001: `/apps` lists AuthorForge as live before release
+
+- Found: 2026-10-02, BDS-WEB-PR-v0.1 CP5 production check.
+- Evidence: production `/apps` shows AuthorForge as `live 1.0.0` with a 2026-06-01 go-live date. The Author-Forge repository has no published GitHub release and reports version 0.1.0. Every other public page labels AuthorForge "in development" (#37).
+- Root cause: `src/lib/products/products.json` is published by Forge_Command (Fleet → Website Publish), not authored in this repository. It still carries the placeholder `status: "live"`, `version: "1.0.0"`, and `commitSha: "seed-catalog-record"`.
+- Fix: republish AuthorForge as `coming_soon` from Forge_Command. `/apps` then shows "About AuthorForge" and "Release not yet announced" (#37).
+- Disposition: **open**. Owner: Charles Boswell.
+
+## KI-BDS-20261002-002: First `/api/forge/v1/plans` after idle returns 504
+
+- Found: 2026-10-02, BDS-WEB-PR-v0.1 CP4/CP5 production checks (seen twice).
+- Evidence: the first `GET /api/forge/v1/plans` after an idle period returned `504`. The next requests returned `200` in about 0.3 s. `/pricing.html` shows "Request failed (504)" to that first visitor.
+- Root cause: likely a ForgeCustomer cold start that exceeds the BFF upstream deadline. Unverified; the cause is not in this repository.
+- Fix: keep ForgeCustomer warm or size the instance so it stays up. Optionally show a friendlier retry message on the pricing page.
+- Disposition: **open**. Owner: Charles Boswell.
+
+## KI-BDS-20261002-003: Extensionless page aliases use the asset cache policy
+
+- Found: 2026-10-02, BDS-WEB-PR-v0.1 CP5 production check.
+- Evidence: `/media` returns `Cache-Control: public, max-age=300`; `/media.html` returns `no-store`.
+- Root cause: `cacheControlFor()` in `server/security/publication.ts` reads the request path. Only paths ending in `.html` or `/` get `no-store`.
+- Fix: compute the cache policy from the resolved file (`media.html`), not the request path.
+- Disposition: **open**, low severity. Owner: Charles Boswell.
