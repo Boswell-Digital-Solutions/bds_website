@@ -61,15 +61,15 @@ function asList(value, key) {
 
 // --- sections --------------------------------------------------------------
 
-async function renderAccount() {
+async function renderAccount(session) {
   const node = el("account");
   if (!node) return;
   try {
     const account = await forge.account();
     node.innerHTML = `
       <dl class="forge-meta">
-        <div><dt>Account ID</dt><dd>${escapeHtml(account.id ?? account.account_id ?? "—")}</dd></div>
-        <div><dt>Email</dt><dd>${escapeHtml(account.email ?? "—")}</dd></div>
+        <div><dt>Account ID</dt><dd>${escapeHtml(account.customer_id ?? account.id ?? account.account_id ?? "—")}</dd></div>
+        <div><dt>Email</dt><dd>${escapeHtml(session?.user?.email ?? "—")}</dd></div>
         ${account.display_name ? `<div><dt>Name</dt><dd>${escapeHtml(account.display_name)}</dd></div>` : ""}
         ${account.country_code ? `<div><dt>Country</dt><dd>${escapeHtml(account.country_code)}</dd></div>` : ""}
       </dl>`;
@@ -450,8 +450,23 @@ async function init() {
   let session;
   try {
     ({ session } = await bootstrapSession({ requireAuth: true }));
-  } catch {
-    // bootstrapSession already redirected (login / suspended / closed).
+  } catch (error) {
+    // Auth/account-state failures redirect; outages need a visible failure state.
+    if (!describeForgeError(error).redirect) {
+      for (const section of ["account", "mfa", "subscriptions", "licenses", "installations", "usage"]) {
+        const node = el(section);
+        if (node) setSectionError(node, error);
+      }
+      const accountNode = el("account");
+      if (accountNode) {
+        const retry = document.createElement("button");
+        retry.type = "button";
+        retry.className = "btn btn-ghost";
+        retry.textContent = "Retry loading account";
+        retry.addEventListener("click", () => window.location.reload());
+        accountNode.appendChild(retry);
+      }
+    }
     return;
   }
   if (!session) {
@@ -462,7 +477,7 @@ async function init() {
 
   // Reads run in parallel; each section handles its own errors.
   await Promise.all([
-    renderAccount(),
+    renderAccount(session),
     renderMfa(),
     renderSubscriptions(),
     renderLicenses(),
