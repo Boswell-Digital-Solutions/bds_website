@@ -1,14 +1,39 @@
-import { describe, expect, mock, test } from "bun:test";
+import { beforeEach, describe, expect, mock, test } from "bun:test";
 
 // Match the pinned auth-js 2.64.4 response: the SVG inside this data URI is raw,
 // including quotes and fragment characters. No real factor or credential is used.
 const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180"><path fill="#000" d="M0 0h180v180H0z"/><text>fixture &amp; café</text></svg>';
 let response: { data: unknown; error: unknown };
-const enrollFactor = mock(async () => response);
+let factors: { id: string; factor_type: string; status: string; friendly_name: string }[];
+let listError: Error | null;
+let cleanupError: Error | null;
+let operations: string[];
+const enrollFactor = mock(async () => { operations.push("enroll"); return response; });
+const removeFactor = mock(async ({ factorId }: { factorId: string }) => {
+  operations.push(`remove:${factorId}`);
+  return { error: cleanupError };
+});
 mock.module("../src/js/forge/supabase.js", () => ({
-  getSupabase: async () => ({ auth: { mfa: { enroll: enrollFactor } } }),
+  getSupabase: async () => ({ auth: { mfa: {
+    enroll: enrollFactor,
+    listFactors: async () => ({ data: { all: factors }, error: listError }),
+    unenroll: removeFactor,
+  } } }),
 }));
-const { enroll } = await import("../src/js/forge/mfa.js");
+const { enroll, describeMfaError } = await import("../src/js/forge/mfa.js");
+
+beforeEach(() => {
+  factors = [];
+  listError = null;
+  cleanupError = null;
+  operations = [];
+  enrollFactor.mockClear();
+  removeFactor.mockClear();
+  response = {
+    data: { id: "synthetic-factor", totp: { qr_code: `data:image/svg+xml;utf-8,${svg}`, secret: "SYNTHETIC-ONLY" } },
+    error: null,
+  };
+});
 
 describe("MFA QR image source", () => {
   test("encodes the SDK's raw SVG without losing quotes, colors or Unicode", async () => {
@@ -23,12 +48,51 @@ describe("MFA QR image source", () => {
     expect(decodeURIComponent(payload)).toBe(svg);
     expect(result.factorId).toBe("synthetic-factor");
     expect(result.secret).toBe("SYNTHETIC-ONLY");
-    expect(enrollFactor).toHaveBeenCalledWith({ factorType: "totp" });
+    expect(enrollFactor).toHaveBeenCalledWith({ factorType: "totp", friendlyName: "Authenticator 1" });
   });
 
   test("returns enrollment failures without presenting setup data", async () => {
     const error = new Error("Synthetic enrollment unavailable");
     response = { data: null, error };
     await expect(enroll()).rejects.toThrow(error.message);
+  });
+});
+
+describe("MFA enrollment recovery", () => {
+  test("removes abandoned TOTP enrollments before creating a replacement", async () => {
+    factors = [{ id: "abandoned", factor_type: "totp", status: "unverified", friendly_name: "" }];
+    await enroll();
+    expect(operations).toEqual(["remove:abandoned", "enroll"]);
+  });
+
+  test("preserves verified authenticators and other factor types", async () => {
+    factors = [
+      { id: "active", factor_type: "totp", status: "verified", friendly_name: "Authenticator 1" },
+      { id: "pending-phone", factor_type: "phone", status: "unverified", friendly_name: "Phone" },
+      { id: "pending-totp", factor_type: "totp", status: "unverified", friendly_name: "Authenticator 2" },
+    ];
+    await enroll();
+    expect(operations).toEqual(["remove:pending-totp", "enroll"]);
+    expect(enrollFactor).toHaveBeenCalledWith({ factorType: "totp", friendlyName: "Authenticator 3" });
+  });
+
+  test("does not begin enrollment if listing factors fails", async () => {
+    listError = new Error("Synthetic factor listing unavailable");
+    await expect(enroll()).rejects.toThrow(listError.message);
+    expect(operations).toEqual([]);
+  });
+
+  test("does not create another factor if abandoned-factor cleanup fails", async () => {
+    factors = [{ id: "abandoned", factor_type: "totp", status: "unverified", friendly_name: "" }];
+    cleanupError = new Error("Synthetic cleanup unavailable");
+    await expect(enroll()).rejects.toThrow(cleanupError.message);
+    expect(operations).toEqual(["remove:abandoned"]);
+  });
+
+  test("explains name conflicts without exposing raw provider error text", () => {
+    expect(describeMfaError({ code: "mfa_factor_name_conflict", message: "private-provider-detail" }))
+      .toBe("An authenticator with that name already exists. Try again to restart setup.");
+    expect(describeMfaError(new Error("private-provider-detail")))
+      .toBe("Couldn't load two-factor setup. Please try again.");
   });
 });

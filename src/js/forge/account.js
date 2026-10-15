@@ -7,7 +7,7 @@ import { forge } from "./api.js";
 import { signOut } from "./supabase.js";
 import { bootstrapSession, handleForgeError } from "./session.js";
 import { describeForgeError } from "./errors.js";
-import { listFactors, enroll, verifyCode, unenroll } from "./mfa.js";
+import { listFactors, enroll, verifyCode, unenroll, describeMfaError } from "./mfa.js";
 
 // --- small DOM/format helpers ---------------------------------------------
 
@@ -83,6 +83,13 @@ async function renderAccount(session) {
 // Supabase owns the factor and its secret; this only enrolls, confirms, and
 // removes it. See docs/plans/two-factor-authentication-plan.md.
 
+function setMfaError(node, error, retry) {
+  node.innerHTML = `
+    <p class="forge-section__error" role="alert">${escapeHtml(describeMfaError(error))}</p>
+    <button type="button" class="btn btn-ghost btn-small" data-mfa-retry>Try again</button>`;
+  node.querySelector("[data-mfa-retry]").addEventListener("click", retry);
+}
+
 async function renderMfa() {
   const node = el("mfa");
   if (!node) return;
@@ -99,7 +106,7 @@ async function renderMfa() {
       renderMfaEnabled(node, factors);
     }
   } catch (error) {
-    setSectionError(node, error);
+    setMfaError(node, error, () => renderMfa());
   }
 }
 
@@ -183,7 +190,7 @@ async function startMfaEnrollment(node) {
   try {
     enrollment = await enroll();
   } catch (error) {
-    setSectionError(node, error);
+    setMfaError(node, error, () => startMfaEnrollment(node));
     return;
   }
 
@@ -208,7 +215,7 @@ async function startMfaEnrollment(node) {
     try {
       await unenroll(enrollment.factorId);
     } catch {
-      // Best-effort cleanup of the unconfirmed factor; harmless if it lingers.
+      // Best-effort cleanup; the next setup attempt retries unverified cleanup.
     }
     // Re-derive state rather than assuming "not enabled" — this may have been
     // an attempt to add a backup factor with one already active.

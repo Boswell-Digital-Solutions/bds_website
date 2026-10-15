@@ -22,7 +22,28 @@ export async function listFactors() {
  *  secret. The factor is not active until `verifyCode` succeeds against it. */
 export async function enroll() {
   const supabase = await getSupabase();
-  const { data, error } = await supabase.auth.mfa.enroll({ factorType: "totp" });
+  const { data: listed, error: listError } = await supabase.auth.mfa.listFactors();
+  if (listError) {
+    throw listError;
+  }
+  // Reloading or leaving setup can strand an unverified factor whose secret
+  // cannot be recovered. Restart only these TOTP enrollments, never a verified
+  // authenticator or another factor type. Stop if cleanup fails.
+  const factors = listed?.all ?? [];
+  for (const factor of factors) {
+    if (factor.factor_type === "totp" && factor.status === "unverified") {
+      const { error } = await supabase.auth.mfa.unenroll({ factorId: factor.id });
+      if (error) throw error;
+    }
+  }
+  // Supabase requires distinct factor names, including for backup authenticators.
+  const usedNames = new Set(factors.map((factor) => factor.friendly_name));
+  let number = 1;
+  while (usedNames.has(`Authenticator ${number}`)) number += 1;
+  const { data, error } = await supabase.auth.mfa.enroll({
+    factorType: "totp",
+    friendlyName: `Authenticator ${number}`,
+  });
   if (error) {
     throw error;
   }
@@ -35,6 +56,17 @@ export async function enroll() {
     qrCode: `${qrPrefix}${encodeURIComponent(svg)}`,
     secret: data.totp.secret,
   };
+}
+
+/** Customer-safe messages for Supabase MFA failures; do not display raw errors. */
+export function describeMfaError(error) {
+  if (error?.code === "mfa_factor_name_conflict") {
+    return "An authenticator with that name already exists. Try again to restart setup.";
+  }
+  if (error?.code === "over_request_rate_limit") {
+    return "Too many setup attempts. Wait a moment, then try again.";
+  }
+  return "Couldn't load two-factor setup. Please try again.";
 }
 
 /** Verify a 6-digit code against a factor — used both to confirm a fresh
