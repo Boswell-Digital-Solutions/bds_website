@@ -165,7 +165,12 @@ async function init() {
   let session;
   try {
     ({ session } = await bootstrapSession({ requireAuth: true }));
-  } catch {
+  } catch (error) {
+    const descriptor = describeForgeError(error);
+    if (!descriptor.redirect) {
+      root.replaceChildren();
+      renderError(descriptor.message);
+    }
     return;
   }
   if (!session) {

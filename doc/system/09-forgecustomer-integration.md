@@ -3,7 +3,7 @@
 ## Role and Boundary
 
 ForgeCustomer (repo: `Boswecw/forgecustomer`, Rust/Axum) is the authority for
-customer identity, commerce, licensing, entitlements, installations, and usage
+business customer identity, commerce, licensing, entitlements, installations, and usage
 for Boswell Digital Solutions products. AuthorForge is the first product.
 
 The website is a pure **customer-surface client**: it renders state ForgeCustomer
@@ -38,6 +38,19 @@ not on the list â€” notably every `/v1/admin/*` route and any operator surface â
 rejected with a `404 NOT_FOUND` before any upstream request is made. Public
 catalog endpoints (`/v1/products`, `/v1/plans`, `/v1/entitlements/keys`) are the
 only routes the proxy will forward without a user token.
+
+## Account identity and load failures
+
+`GET /v1/account` returns `customer_id`, `auth_user_id`, `mfa_required`, and
+`mfa_grace_period_ends_at`. The dashboard displays `customer_id` as Account ID.
+Supabase Auth owns login identity; the Email field uses the signed-in session's
+`user.email`, since ForgeCustomer's account response does not return an email.
+All displayed values pass through the existing HTML escaping.
+
+If session provisioning fails without an authentication/account-state redirect,
+account cards show the central error message and a retry control replaces the
+indefinite loading state. The deletion card also shows an error, with no deletion
+action offered before a successful bootstrap. Existing auth redirects still apply.
 
 ## Configuration (env)
 
