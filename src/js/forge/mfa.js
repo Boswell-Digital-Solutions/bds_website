@@ -26,9 +26,13 @@ export async function enroll() {
   if (error) {
     throw error;
   }
+  // auth-js 2.64.4 prefixes raw SVG with this data-URI header. Encode the
+  // payload so SVG quotes and # colors remain image data, not HTML/URL syntax.
+  const qrPrefix = "data:image/svg+xml;utf-8,";
+  const svg = data.totp.qr_code.slice(qrPrefix.length);
   return {
     factorId: data.id,
-    qrCode: data.totp.qr_code,
+    qrCode: `${qrPrefix}${encodeURIComponent(svg)}`,
     secret: data.totp.secret,
   };
 }

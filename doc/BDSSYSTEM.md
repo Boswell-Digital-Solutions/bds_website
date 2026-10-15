@@ -866,6 +866,15 @@ account cards show the central error message and a retry control replaces the
 indefinite loading state. The deletion card also shows an error, with no deletion
 action offered before a successful bootstrap. Existing auth redirects still apply.
 
+### Authenticator QR images
+
+The pinned auth-js 2.64.4 enrollment response contains raw SVG after the
+`data:image/svg+xml;utf-8,` prefix. `mfa.js` percent-encodes that payload, and
+`account.js` assigns the image URL through the DOM `src` property. Provider SVG
+must not be interpolated into an HTML attribute: its quotes break the image tag,
+and unencoded `#` colors can become URL fragments. The regression uses synthetic
+SVG only; enrollment secrets are never saved in test artifacts.
+
 ## Configuration (env)
 
 | Variable | Scope | Purpose |
