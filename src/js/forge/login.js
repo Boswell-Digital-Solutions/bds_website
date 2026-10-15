@@ -6,6 +6,7 @@ import { getSupabase, getSession } from "./supabase.js";
 import { forge } from "./api.js";
 import { describeForgeError, LOGIN_PAGE } from "./errors.js";
 import { hasPendingChallenge, verifyAnyFactor } from "./mfa.js";
+import { signUpWithEmailDelivery } from "./signup.js";
 
 const form = document.querySelector("[data-login-form]");
 
@@ -155,7 +156,11 @@ if (form instanceof HTMLFormElement) {
       const supabase = await getSupabase();
       const { error } =
         mode === "signup"
-          ? await supabase.auth.signUp({ email, password })
+          ? await signUpWithEmailDelivery(supabase, {
+              email,
+              password,
+              redirectTo: `${window.location.origin}${safeNext()}`,
+            })
           : await supabase.auth.signInWithPassword({ email, password });
 
       if (error) {
@@ -165,10 +170,11 @@ if (form instanceof HTMLFormElement) {
 
       const session = await getSession();
       if (!session) {
-        // Sign-up with email confirmation required.
+        // New accounts receive confirmation; existing accounts receive sign-in.
+        // Keep the same status for both so the UI does not enumerate accounts.
         setStatus(
           "success",
-          "Check your email to confirm your account, then sign in."
+          "Check your email for a confirmation or sign-in link."
         );
         return;
       }

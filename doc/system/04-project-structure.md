@@ -74,6 +74,7 @@ bds_website/
 │   │       ├── login.js
 │   │       ├── pricing.js
 │   │       ├── session.js
+│   │       ├── signup.js
 │   │       └── supabase.js
 │   └── styles/
 │       ├── footer.css

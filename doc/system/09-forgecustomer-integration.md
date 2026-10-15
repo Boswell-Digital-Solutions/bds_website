@@ -138,6 +138,7 @@ signed out gracefully and sent to `/account/closed.html`.
 | `src/js/forge/api.js` | BFF client with 401 refresh-and-retry; typed endpoint wrappers |
 | `src/js/forge/session.js` | Session bootstrap + provision-once + central error redirect |
 | `src/js/forge/login.js` | Login / sign-up / magic-link controller |
+| `src/js/forge/signup.js` | Confirmation delivery for new signups; sign-in email fallback for an already-registered address, with no password reset |
 | `src/js/forge/pricing.js` | Catalog render + checkout start |
 | `src/js/forge/checkout-success.js` | Activation polling |
 | `src/js/forge/account.js` | Dashboard reads + device deactivation + billing-portal redirect |
