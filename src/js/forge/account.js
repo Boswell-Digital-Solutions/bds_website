@@ -189,7 +189,7 @@ async function startMfaEnrollment(node) {
 
   node.innerHTML = `
     <p class="forge-section__intro">Scan this with your authenticator app, then enter the 6-digit code it shows.</p>
-    <img class="forge-mfa__qr" src="${enrollment.qrCode}" alt="QR code for two-factor authentication setup" width="180" height="180">
+    <img class="forge-mfa__qr" data-mfa-qr alt="QR code for two-factor authentication setup" width="180" height="180">
     <p class="forge-mfa__secret">Can't scan it? Enter this key manually: <code>${escapeHtml(enrollment.secret)}</code></p>
     <div class="page-field">
       <label for="mfa-setup-code">6-digit code</label>
@@ -199,6 +199,8 @@ async function startMfaEnrollment(node) {
     <button type="button" class="btn btn-primary btn-small" data-mfa-confirm>Confirm</button>
     <button type="button" class="btn btn-ghost btn-small" data-mfa-cancel>Cancel</button>`;
 
+  // Set the URL as a DOM property; never parse the provider's SVG as markup.
+  node.querySelector("[data-mfa-qr]").src = enrollment.qrCode;
   const status = node.querySelector("[data-mfa-status]");
   const codeInput = node.querySelector("#mfa-setup-code");
 
