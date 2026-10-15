@@ -866,7 +866,14 @@ account cards show the central error message and a retry control replaces the
 indefinite loading state. The deletion card also shows an error, with no deletion
 action offered before a successful bootstrap. Existing auth redirects still apply.
 
-### Authenticator QR images
+### Authenticator enrollment
+
+Starting setup lists the current user's factors and removes only unverified TOTP
+enrollments left by a cancelled, reloaded, or abandoned setup. Cleanup must succeed
+before creating a replacement. Verified authenticators and other factor types are
+preserved. New factors receive an unused `Authenticator N` name, so restarting setup
+or adding a backup does not collide with a blank or existing factor name. Listing
+and enrollment failures show a customer-safe message with an explicit retry control.
 
 The pinned auth-js 2.64.4 enrollment response contains raw SVG after the
 `data:image/svg+xml;utf-8,` prefix. `mfa.js` percent-encodes that payload, and
