@@ -157,6 +157,12 @@ export function describeForgeError(error) {
     }
 
     case 409:
+      if (code === "NO_BILLING_ACCOUNT") {
+        return {
+          title: "No billing account",
+          message: "There's no billing account to manage yet.",
+        };
+      }
       return {
         title: "Conflict",
         message:

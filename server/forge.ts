@@ -462,7 +462,9 @@ export function validateCheckoutBody(input: Record<string, unknown>): Record<str
 
 function validateBillingPortal(input: Record<string, unknown>): Record<string, unknown> {
   rejectUnknown(input, new Set(["return_url"]));
-  const returnUrl = validateSameOriginRedirect(input.return_url, "return_url", "/account.html");
+  const returnUrl = validateSameOriginRedirect(input.return_url, "return_url", "/account.html", [
+    "https://bds-website.onrender.com",
+  ]);
   return { return_url: returnUrl };
 }
 
@@ -513,7 +515,12 @@ function requiredString(
   return normalized;
 }
 
-function validateSameOriginRedirect(value: unknown, field: string, expectedPath: string): string {
+function validateSameOriginRedirect(
+  value: unknown,
+  field: string,
+  expectedPath: string,
+  additionalOrigins: readonly string[] = []
+): string {
   const raw = requiredString(value, field, 1, 512);
   if (raw.startsWith("//")) {
     throw new HttpError(400, "INVALID_REDIRECT", `${field} is invalid.`);
@@ -531,6 +538,7 @@ function validateSameOriginRedirect(value: unknown, field: string, expectedPath:
     "https://www.bds-digitalsolutions.com",
     "http://127.0.0.1",
     "http://localhost",
+    ...additionalOrigins,
   ]);
   const isLocalOrigin =
     (parsed.hostname === "127.0.0.1" || parsed.hostname === "localhost") &&
