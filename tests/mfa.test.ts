@@ -40,6 +40,7 @@ beforeEach(() => {
 
 describe("MFA sign-in gate", () => {
   test("requires the authenticator after first-factor sign-in", async () => {
+    factors = [{ id: "live", factor_type: "totp", status: "verified", friendly_name: "Live" }];
     expect(await hasPendingChallenge()).toBe(true);
   });
   test("allows a completed second factor", async () => {
@@ -57,6 +58,24 @@ describe("MFA sign-in gate", () => {
   test("does not treat a missing assurance result as MFA complete", async () => {
     assurance = { data: null, error: null };
     await expect(hasPendingChallenge()).rejects.toThrow("Could not determine sign-in verification status.");
+  });
+  test("allows replacement enrollment after an admin reset despite cached nextLevel aal2", async () => {
+    expect(assurance.data?.nextLevel).toBe("aal2");
+    factors = [];
+    expect(await hasPendingChallenge()).toBe(false);
+  });
+  test("requires a factor enrolled elsewhere despite cached nextLevel aal1", async () => {
+    assurance.data = { currentLevel: "aal1", nextLevel: "aal1" };
+    factors = [{ id: "new-live", factor_type: "totp", status: "verified", friendly_name: "Live" }];
+    expect(await hasPendingChallenge()).toBe(true);
+  });
+  test("ignores unverified enrollment records when deciding whether to challenge", async () => {
+    factors = [{ id: "pending", factor_type: "totp", status: "unverified", friendly_name: "Pending" }];
+    expect(await hasPendingChallenge()).toBe(false);
+  });
+  test("fails closed when current factor lookup fails", async () => {
+    listError = new Error("Synthetic current factor lookup unavailable");
+    await expect(hasPendingChallenge()).rejects.toThrow("Synthetic current factor lookup unavailable");
   });
 });
 

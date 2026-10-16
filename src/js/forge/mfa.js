@@ -128,5 +128,14 @@ export async function hasPendingChallenge() {
     throw error;
   }
   if (!data) throw new Error("Could not determine sign-in verification status.");
-  return data.nextLevel === "aal2" && data.currentLevel !== data.nextLevel;
+  if (data.currentLevel === "aal2") return false;
+
+  // auth-js 2.64.4 derives nextLevel from cached session.user.factors. An
+  // administrator reset does not update that browser cache. listFactors uses
+  // getUser() and reads current provider state, so recovery can reach enrollment
+  // and factors added elsewhere still require a challenge. Never cache this.
+  const { data: listed, error: listError } = await supabase.auth.mfa.listFactors();
+  if (listError) throw listError;
+  if (!Array.isArray(listed?.all)) throw new Error("Could not determine current authenticators.");
+  return listed.all.some((factor) => factor.status === "verified");
 }

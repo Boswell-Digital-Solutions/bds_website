@@ -956,6 +956,11 @@ customer or fall back to the home page on a customer-service failure; the
 authenticated destination handles provisioning and bounded recovery. A pending
 authenticator step explains which code is needed and hides credential controls.
 An assurance-level lookup failure remains an error, never a successful MFA check.
+For an AAL1 session, the challenge gate reads the current provider factor list.
+The pinned SDK's `nextLevel` uses cached session factors, which can remain stale
+after an administrator reset or enrollment on another device. A provider list
+failure stays an error; this check does not modify factors or relax ForgeCustomer
+enforcement. With no verified factors, the customer can reach replacement setup.
 
 ### 2. Pricing → Stripe Checkout
 
