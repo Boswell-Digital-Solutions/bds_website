@@ -260,16 +260,18 @@ async function renderSubscriptions() {
         const cloud = sub.grants_cloud
           ? `<span class="forge-badge forge-badge--ok">Cloud enabled</span>`
           : `<span class="forge-badge forge-badge--neutral">Local only</span>`;
-        const renews = sub.cancel_at_period_end
-          ? `Cancels on ${formatDate(sub.current_period_end)}`
-          : sub.current_period_end
-            ? `Renews on ${formatDate(sub.current_period_end)}`
-            : "";
+        const periodSummary = sub.status === "canceled"
+          ? "Subscription canceled."
+          : sub.cancel_at_period_end
+            ? `Cancels on ${formatDate(sub.current_period_end)}`
+            : sub.current_period_end
+              ? `Renews on ${formatDate(sub.current_period_end)}`
+              : "";
         return `
           <div class="forge-row">
             <div class="forge-row__main">
               <strong>${escapeHtml(sub.plan_key ?? sub.plan ?? "Subscription")}</strong>
-              <div class="forge-row__sub">${renews ? escapeHtml(renews) : ""}</div>
+              <div class="forge-row__sub">${periodSummary ? escapeHtml(periodSummary) : ""}</div>
             </div>
             <div class="forge-row__side">${badge(sub.status)} ${cloud}</div>
           </div>`;
