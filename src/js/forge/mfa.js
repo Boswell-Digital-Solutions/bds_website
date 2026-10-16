@@ -125,7 +125,8 @@ export async function hasPendingChallenge() {
   const supabase = await getSupabase();
   const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
   if (error) {
-    return false;
+    throw error;
   }
+  if (!data) throw new Error("Could not determine sign-in verification status.");
   return data.nextLevel === "aal2" && data.currentLevel !== data.nextLevel;
 }

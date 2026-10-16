@@ -1,10 +1,8 @@
 // Login page controller. Authentication runs against Supabase on the client;
-// on success we provision the ForgeCustomer profile (idempotent) before sending
-// the user to their destination.
+// on success we send the user to their destination. Authenticated pages own
+// ForgeCustomer provisioning and its recovery/error UI through session.js.
 
 import { getSupabase, getSession } from "./supabase.js";
-import { forge } from "./api.js";
-import { describeForgeError, LOGIN_PAGE } from "./errors.js";
 import { hasPendingChallenge, verifyAnyFactor } from "./mfa.js";
 import { signUpWithEmailDelivery } from "./signup.js";
 
@@ -68,6 +66,9 @@ if (form instanceof HTMLFormElement) {
           : "Sign in";
     }
     form.dataset.step = visible ? "mfa" : "credentials";
+    if (visible) {
+      setStatus("", "Finish signing in with the 6-digit code from your authenticator app.");
+    }
   };
 
   // Covers both a plain revisit with an existing session and landing back
@@ -84,27 +85,11 @@ if (form instanceof HTMLFormElement) {
     }
     window.location.replace(safeNext());
   };
-  checkSignedIn();
+  checkSignedIn().catch(() => {
+    setStatus("error", "Couldn't check your sign-in. Reload this page to try again.");
+  });
 
   const finishSignIn = async () => {
-    try {
-      await forge.provision({});
-    } catch (error) {
-      const descriptor = describeForgeError(error);
-      // Honour genuine account-state redirects (suspended / closed). For any
-      // other provisioning failure — ForgeCustomer unavailable, not yet wired,
-      // timeout, or token-not-trusted — don't trap the user on login: their
-      // Supabase session is valid, so send them into the site and let
-      // provisioning retry later. Keeps login usable while the customer service
-      // is still being stood up.
-      if (descriptor.redirect && descriptor.redirect !== LOGIN_PAGE) {
-        window.location.replace(descriptor.redirect);
-        return;
-      }
-      console.warn("[login] provisioning deferred:", descriptor.message);
-      window.location.replace("/");
-      return;
-    }
     window.location.replace(safeNext());
   };
 

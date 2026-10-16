@@ -2,6 +2,11 @@
    ForgeCustomer account surface — dashboard, auth, checkout
    ============================================================ */
 
+/* Component display rules must not reveal controls hidden during MFA. */
+[data-login-form] [hidden] {
+  display: none;
+}
+
 .forge-section {
   margin-top: var(--space-6);
 }

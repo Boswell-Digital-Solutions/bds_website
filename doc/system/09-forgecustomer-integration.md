@@ -136,6 +136,13 @@ authenticated page. It ensures `POST /v1/account/provision` has run once per
 session (idempotent server-side; returns `created: false` on repeat), passing an
 optional best-effort timezone hint.
 
+Password sign-in, magic-link return and a completed authenticator challenge
+continue to the requested same-origin destination. Login does not provision a
+customer or fall back to the home page on a customer-service failure; the
+authenticated destination handles provisioning and bounded recovery. A pending
+authenticator step explains which code is needed and hides credential controls.
+An assurance-level lookup failure remains an error, never a successful MFA check.
+
 ### 2. Pricing → Stripe Checkout
 
 `pricing.html` + `src/js/forge/pricing.js` render the public catalog. The free
