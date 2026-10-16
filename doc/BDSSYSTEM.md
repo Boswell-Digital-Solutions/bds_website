@@ -892,6 +892,10 @@ rejected. A customer without a Stripe billing link receives `409 NO_BILLING_ACCO
 displayed as "There's no billing account to manage yet." No billing session or
 commercial entitlement is created for that customer.
 
+Canceled subscriptions display "Subscription canceled." even when Stripe retains a
+billing-period end date. That retained date must not appear as a future renewal.
+Scheduled cancellations and active subscription renewal dates keep their existing labels.
+
 ## Configuration (env)
 
 | Variable | Scope | Purpose |
