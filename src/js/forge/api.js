@@ -7,6 +7,7 @@
 
 import { getAccessToken } from "./supabase.js";
 import { toForgeError } from "./errors.js";
+import { recoverAccountRequest } from "./recovery.js";
 
 const BASE = "/api/forge";
 
@@ -17,9 +18,10 @@ const BASE = "/api/forge";
  * @param {unknown} [opts.body]            JSON-serialisable request body.
  * @param {boolean} [opts.requireAuth=true]
  * @param {string} [opts.idempotencyKey]   Forwarded as the Idempotency-Key header.
+ * @param {function} [opts.onRetry]       Reports bounded account-service recovery.
  */
 export async function forgeFetch(path, opts = {}) {
-  const { method = "GET", body, requireAuth = true, idempotencyKey } = opts;
+  const { method = "GET", body, requireAuth = true, idempotencyKey, onRetry } = opts;
 
   const doRequest = async (forceRefresh) => {
     const headers = { accept: "application/json" };
@@ -51,12 +53,16 @@ export async function forgeFetch(path, opts = {}) {
     return fetch(`${BASE}${path}`, { method, headers, body: payload });
   };
 
-  let response = await doRequest(false);
-
-  // One transparent refresh-and-retry on an expired token.
-  if (response.status === 401 && requireAuth) {
-    response = await doRequest(true);
-  }
+  let refreshed = false;
+  const response = await recoverAccountRequest(path, method, async () => {
+    let result = await doRequest(false);
+    // One forced token refresh across the entire request, including recovery.
+    if (requireAuth && result.status === 401 && !refreshed) {
+      refreshed = true;
+      result = await doRequest(true);
+    }
+    return result;
+  }, { onRetry });
 
   if (!response.ok) {
     throw await toForgeError(response);
@@ -83,8 +89,8 @@ function idempotencyKey(prefix) {
 
 export const forge = {
   // Session bootstrap
-  provision: (profile) =>
-    forgeFetch("/v1/account/provision", { method: "POST", body: profile ?? {} }),
+  provision: (profile, options = {}) =>
+    forgeFetch("/v1/account/provision", { method: "POST", body: profile ?? {}, onRetry: options.onRetry }),
 
   // MFA status (requires the caller's own token already be at aal2 — see mfa.js)
   setMfaStatus: (enabled) =>
@@ -116,7 +122,7 @@ export const forge = {
     }),
 
   // Dashboard reads
-  account: () => forgeFetch("/v1/account"),
+  account: (options = {}) => forgeFetch("/v1/account", { onRetry: options.onRetry }),
   subscriptions: () => forgeFetch("/v1/subscriptions"),
   licenses: () => forgeFetch("/v1/licenses"),
   installations: () => forgeFetch("/v1/installations"),

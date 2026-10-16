@@ -866,6 +866,16 @@ account cards show the central error message and a retry control replaces the
 indefinite loading state. The deletion card also shows an error, with no deletion
 action offered before a successful bootstrap. Existing auth redirects still apply.
 
+Safe account requests recover automatically from HTTP 502, 503 and 504 while an idle
+customer service starts. Only GET requests and idempotent account provisioning may retry,
+at most four times with 2/4/8/8-second delays. The BFF keeps its eight-second deadline
+per attempt. The dashboard announces reconnection while waiting and retains the manual
+retry control if recovery is exhausted. Checkout, billing-portal, MFA, deletion and device
+mutations are never replayed by this recovery path; authentication/policy errors and rate
+limits are not retried. Token refresh remains limited to one forced refresh per call.
+Error reference IDs are rendered once, including when the central error message already
+contains the reference.
+
 ### Authenticator enrollment
 
 Starting setup lists the current user's factors and removes only unverified TOTP

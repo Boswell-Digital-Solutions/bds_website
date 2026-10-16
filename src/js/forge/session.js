@@ -21,9 +21,10 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
  *
  * @param {object} opts
  * @param {boolean} [opts.requireAuth=true]  Redirect to login when signed out.
+ * @param {function} [opts.onRetry] Reports safe account-service reconnection.
  * @returns {Promise<{ session: object|null }>}
  */
-export async function bootstrapSession({ requireAuth = true } = {}) {
+export async function bootstrapSession({ requireAuth = true, onRetry } = {}) {
   const session = await getSession();
 
   // A session that hasn't completed a required MFA step-up (AAL2) is treated
@@ -42,7 +43,7 @@ export async function bootstrapSession({ requireAuth = true } = {}) {
   // profile with created:false on repeat). Must precede any other call.
   if (sessionStorage.getItem(PROVISION_FLAG) !== session.user.id) {
     try {
-      await forge.provision(defaultProvisionProfile());
+      await forge.provision(defaultProvisionProfile(), { onRetry });
       sessionStorage.setItem(PROVISION_FLAG, session.user.id);
     } catch (error) {
       // A suspended/closed account surfaces here on the very first call.
@@ -51,7 +52,7 @@ export async function bootstrapSession({ requireAuth = true } = {}) {
     }
   }
 
-  await showMfaGraceReminder();
+  await showMfaGraceReminder(onRetry);
 
   return { session };
 }
@@ -62,11 +63,11 @@ export async function bootstrapSession({ requireAuth = true } = {}) {
  * hasn't enrolled a factor yet. Best-effort throughout: any failure here just
  * skips the reminder for this page load rather than affecting sign-in.
  */
-async function showMfaGraceReminder() {
+async function showMfaGraceReminder(onRetry) {
   let endsAtRaw = sessionStorage.getItem(MFA_GRACE_CACHE_KEY);
   if (endsAtRaw === null) {
     try {
-      const account = await forge.account();
+      const account = await forge.account({ onRetry });
       endsAtRaw = account?.mfa_grace_period_ends_at || "";
     } catch {
       endsAtRaw = "";
