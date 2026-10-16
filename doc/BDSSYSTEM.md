@@ -882,6 +882,16 @@ must not be interpolated into an HTML attribute: its quotes break the image tag,
 and unencoded `#` colors can become URL fragments. The regression uses synthetic
 SVG only; enrollment secrets are never saved in test artifacts.
 
+### Billing portal returns
+
+Billing Portal returns accept the canonical company origins and the exact deployed
+`https://bds-website.onrender.com/account.html` URL, plus existing local development
+origins. The Render exception applies only to billing: checkout retains its existing
+origin policy. Other Render hosts, paths, ports, credentials, and fragments are
+rejected. A customer without a Stripe billing link receives `409 NO_BILLING_ACCOUNT`,
+displayed as "There's no billing account to manage yet." No billing session or
+commercial entitlement is created for that customer.
+
 ## Configuration (env)
 
 | Variable | Scope | Purpose |

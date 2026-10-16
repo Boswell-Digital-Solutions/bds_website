@@ -17,6 +17,7 @@ import { CHECKOUT_OPEN, findPolicy, validateCheckoutBody } from "../server/forge
 import { validateContactPayload } from "../server/intake.ts";
 import { validateMessage } from "../server/hud.ts";
 import { findFormerDomainWebRefs } from "../tools/qc/canonical-domain.ts";
+import { ForgeError, describeForgeError } from "../src/js/forge/errors.js";
 import {
   isPubliclyVisibleProduct,
   primaryProductHref,
@@ -128,6 +129,41 @@ describe("forge BFF allowlist", () => {
         return_url: "https://bds-digitalsolutions.com/account.html",
       })
     ).toEqual({ return_url: "https://bds-digitalsolutions.com/account.html" });
+  });
+
+  test("billing-portal accepts only the exact deployed Render account return", () => {
+    const policy = findPolicy("POST", "/v1/billing-portal");
+    const returnUrl = "https://bds-website.onrender.com/account.html";
+    expect(policy?.validateBody?.({ return_url: returnUrl })).toEqual({ return_url: returnUrl });
+    for (const invalid of [
+      "https://other-bds.onrender.com/account.html",
+      "https://bds-website.onrender.com.evil.example/account.html",
+      "http://bds-website.onrender.com/account.html",
+      "https://bds-website.onrender.com:8443/account.html",
+      "https://bds-website.onrender.com/elsewhere",
+      "https://bds-website.onrender.com/account.html#fragment",
+      "https://user@bds-website.onrender.com/account.html",
+      "//bds-website.onrender.com/account.html",
+    ]) {
+      expect(() => policy?.validateBody?.({ return_url: invalid })).toThrow();
+    }
+    // The billing exception does not expand the separate checkout redirect policy.
+    expect(() => validateCheckoutBody({
+      plan_key: "authorforge.pro",
+      success_url: "https://bds-website.onrender.com/checkout/success.html",
+      cancel_url: "https://bds-website.onrender.com/checkout/cancel.html",
+    })).toThrow();
+  });
+
+  test("free customers receive a clear no-billing-account message", () => {
+    const descriptor = describeForgeError(new ForgeError({
+      status: 409,
+      code: "NO_BILLING_ACCOUNT",
+      message: "No billing account yet. Subscribe before managing billing.",
+    }));
+    expect(descriptor.message).toBe("There's no billing account to manage yet.");
+    expect(descriptor.redirect).toBeUndefined();
+    expect(descriptor.signOut).toBeUndefined();
   });
 });
 
