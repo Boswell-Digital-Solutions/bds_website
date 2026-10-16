@@ -17,7 +17,7 @@ function el(id) {
 
 function setSectionError(node, error) {
   const descriptor = describeForgeError(error);
-  const support = error?.correlationId
+  const support = error?.correlationId && !descriptor.message.includes(error.correlationId)
     ? ` <span class="forge-ref">Reference: ${escapeHtml(error.correlationId)}</span>`
     : "";
   node.innerHTML =
@@ -61,11 +61,18 @@ function asList(value, key) {
 
 // --- sections --------------------------------------------------------------
 
+function showConnectionRetry() {
+  const node = el("account");
+  if (node) {
+    node.innerHTML = `<p role="status">Connecting to your account service… Retrying automatically; this can take about a minute.</p>`;
+  }
+}
+
 async function renderAccount(session) {
   const node = el("account");
   if (!node) return;
   try {
-    const account = await forge.account();
+    const account = await forge.account({ onRetry: showConnectionRetry });
     node.innerHTML = `
       <dl class="forge-meta">
         <div><dt>Account ID</dt><dd>${escapeHtml(account.customer_id ?? account.id ?? account.account_id ?? "—")}</dd></div>
@@ -460,7 +467,7 @@ async function init() {
 
   let session;
   try {
-    ({ session } = await bootstrapSession({ requireAuth: true }));
+    ({ session } = await bootstrapSession({ requireAuth: true, onRetry: showConnectionRetry }));
   } catch (error) {
     // Auth/account-state failures redirect; outages need a visible failure state.
     if (!describeForgeError(error).redirect) {
