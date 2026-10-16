@@ -8,6 +8,7 @@ let factors: { id: string; factor_type: string; status: string; friendly_name: s
 let listError: Error | null;
 let cleanupError: Error | null;
 let operations: string[];
+let assurance: { data: { currentLevel: string; nextLevel: string } | null; error: Error | null };
 const enrollFactor = mock(async () => { operations.push("enroll"); return response; });
 const removeFactor = mock(async ({ factorId }: { factorId: string }) => {
   operations.push(`remove:${factorId}`);
@@ -18,21 +19,45 @@ mock.module("../src/js/forge/supabase.js", () => ({
     enroll: enrollFactor,
     listFactors: async () => ({ data: { all: factors }, error: listError }),
     unenroll: removeFactor,
+    getAuthenticatorAssuranceLevel: async () => assurance,
   } } }),
 }));
-const { enroll, describeMfaError } = await import("../src/js/forge/mfa.js");
+const { enroll, describeMfaError, hasPendingChallenge } = await import("../src/js/forge/mfa.js");
 
 beforeEach(() => {
   factors = [];
   listError = null;
   cleanupError = null;
   operations = [];
+  assurance = { data: { currentLevel: "aal1", nextLevel: "aal2" }, error: null };
   enrollFactor.mockClear();
   removeFactor.mockClear();
   response = {
     data: { id: "synthetic-factor", totp: { qr_code: `data:image/svg+xml;utf-8,${svg}`, secret: "SYNTHETIC-ONLY" } },
     error: null,
   };
+});
+
+describe("MFA sign-in gate", () => {
+  test("requires the authenticator after first-factor sign-in", async () => {
+    expect(await hasPendingChallenge()).toBe(true);
+  });
+  test("allows a completed second factor", async () => {
+    assurance.data = { currentLevel: "aal2", nextLevel: "aal2" };
+    expect(await hasPendingChallenge()).toBe(false);
+  });
+  test("allows an account without an enrolled second factor", async () => {
+    assurance.data = { currentLevel: "aal1", nextLevel: "aal1" };
+    expect(await hasPendingChallenge()).toBe(false);
+  });
+  test("does not treat an assurance lookup failure as MFA complete", async () => {
+    assurance = { data: null, error: new Error("Synthetic assurance lookup unavailable") };
+    await expect(hasPendingChallenge()).rejects.toThrow("Synthetic assurance lookup unavailable");
+  });
+  test("does not treat a missing assurance result as MFA complete", async () => {
+    assurance = { data: null, error: null };
+    await expect(hasPendingChallenge()).rejects.toThrow("Could not determine sign-in verification status.");
+  });
 });
 
 describe("MFA QR image source", () => {

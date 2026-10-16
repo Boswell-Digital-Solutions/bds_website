@@ -7,7 +7,7 @@
 // redirect itself.
 
 import { forge } from "./api.js";
-import { getSession } from "./supabase.js";
+import { bootstrapSession, handleForgeError } from "./session.js";
 import { describeForgeError, ForgeError } from "./errors.js";
 
 const FREE_PLAN_KEY = "authorforge_included";
@@ -99,18 +99,15 @@ async function startCheckout(planKey, button) {
   if (!PURCHASES_OPEN || !planKey) {
     return;
   }
-  const session = await getSession();
-  if (!session) {
-    const next = encodeURIComponent("/pricing.html");
-    window.location.assign(`/login.html?next=${next}`);
-    return;
-  }
-
   button.disabled = true;
   setStatus("pending", "Starting secure checkout…");
 
   const origin = window.location.origin;
   try {
+    // Public catalog reads need no session; a purchase must complete the same
+    // sign-in/MFA/provisioning gate as Account before any checkout mutation.
+    const { session } = await bootstrapSession({ requireAuth: true });
+    if (!session) return;
     const result = await forge.checkout({
       planKey,
       successUrl: `${origin}/checkout/success.html`,
@@ -130,7 +127,7 @@ async function startCheckout(planKey, button) {
     // Hand the browser to Stripe-hosted checkout.
     window.location.assign(checkoutUrl);
   } catch (error) {
-    const descriptor = describeForgeError(error);
+    const descriptor = await handleForgeError(error);
     if (descriptor.redirect) {
       window.location.replace(descriptor.redirect);
       return;
