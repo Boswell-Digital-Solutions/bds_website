@@ -120,7 +120,7 @@ export function resolvePublicFile(rootDir: string, pathname: string): PublicFile
 
   return {
     absolutePath,
-    cacheControl: cacheControlFor(decoded),
+    cacheControl: cacheControlFor(normalizedRelative),
     contentType: contentTypeFor(relativePath),
     relativePath: normalizedRelative,
   };
@@ -149,11 +149,13 @@ function assetPath(pathname: string): string | undefined {
   return pathname.replace(/^\/+/, "");
 }
 
-function cacheControlFor(pathname: string): string {
-  if (pathname.startsWith("/src/assets/")) {
+// Keyed on the resolved file, not the request path, so an alias such as
+// /media or /white-papers gets the same policy as the HTML file it serves.
+function cacheControlFor(relativePath: string): string {
+  if (relativePath.startsWith("src/assets/")) {
     return "public, max-age=86400";
   }
-  if (pathname.endsWith(".html") || pathname === "/" || pathname === "/.well-known/security.txt") {
+  if (relativePath.endsWith(".html") || relativePath === ".well-known/security.txt") {
     return "no-store";
   }
   return "public, max-age=300";

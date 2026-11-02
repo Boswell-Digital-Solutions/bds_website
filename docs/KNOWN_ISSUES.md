@@ -58,7 +58,10 @@ New observations go below this heading or into existing linked entries. Setup ob
 - Evidence: `/media` returns `Cache-Control: public, max-age=300`; `/media.html` returns `no-store`.
 - Root cause: `cacheControlFor()` in `server/security/publication.ts` reads the request path. Only paths ending in `.html` or `/` get `no-store`.
 - Fix: compute the cache policy from the resolved file (`media.html`), not the request path.
-- Disposition: **open**, low severity. Owner: Charles Boswell.
+- Scope found during the fix: `/white-papers` (no trailing slash) had the same defect.
+- Fix applied 2026-11-02: `cacheControlFor()` now takes the resolved relative path. A test in `tests/security.test.ts` fails on the old code and pins `no-store` for `/`, `/media`, `/media/`, `/media.html`, `/white-papers`, and `/white-papers/`. On the local server, all six return `no-store`; assets and `robots.txt` keep their policies.
+- Also corrected in the same change: `doc/system/05-page-inventory.md` said that only the homepage mounts the HUD and that Pro checkout is live. The source shows the HUD mounts on every page, and checkout is paused (#37).
+- Disposition: **fix pending merge and deploy**. Close after the deployed site returns `no-store` for `/media`. Owner: Charles Boswell.
 
 ## KI-BDS-20261002-004: A documentation-only push may redeploy the Render service
 
