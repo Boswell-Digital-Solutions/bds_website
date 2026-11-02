@@ -102,10 +102,19 @@ export interface PublicFile {
   relativePath: string;
 }
 
+// /v/<asset version>/src/js/... and /v/<asset version>/src/styles/... serve the
+// same files as their unversioned paths. Pages reference the versioned form
+// (tools/assets/version.ts), so relative imports inherit the prefix, and a deploy
+// that changes a script or style sheet changes every URL that loads it.
+const VERSIONED_ASSET = /^\/v\/[0-9a-f]{12}(\/src\/(?:js|styles)\/.+)$/;
+const VERSIONED_CACHE = "public, max-age=31536000, immutable";
+
 export function resolvePublicFile(rootDir: string, pathname: string): PublicFile {
   const decoded = decodePath(pathname);
-  const relativePath =
-    PUBLIC_ROUTES.get(decoded) ?? PUBLIC_WHITE_PAPERS.get(decoded) ?? assetPath(decoded);
+  const versioned = VERSIONED_ASSET.exec(decoded);
+  const relativePath = versioned
+    ? assetPath(versioned[1])
+    : PUBLIC_ROUTES.get(decoded) ?? PUBLIC_WHITE_PAPERS.get(decoded) ?? assetPath(decoded);
 
   if (!relativePath) {
     throw new HttpError(404, "NOT_FOUND", "Not found.");
@@ -120,7 +129,7 @@ export function resolvePublicFile(rootDir: string, pathname: string): PublicFile
 
   return {
     absolutePath,
-    cacheControl: cacheControlFor(normalizedRelative),
+    cacheControl: versioned ? VERSIONED_CACHE : cacheControlFor(normalizedRelative),
     contentType: contentTypeFor(relativePath),
     relativePath: normalizedRelative,
   };

@@ -218,7 +218,7 @@ The responsive header implementation is now consistent across the site:
 
 - every page includes `#menu-toggle`
 - every page includes `#main-nav`
-- every page loads `src/js/site.js` or `../src/js/site.js` from legal routes
+- every page loads `site.js` through the versioned prefix `/v/<asset version>/src/js/site.js`, including legal routes (§5, Versioned asset URLs)
 - the shared script toggles `.site-header__nav--open`, updates `aria-expanded`, closes on `Escape`, closes after nav-link activation, and resets on desktop resize
 
 As checked in today, mobile navigation is implemented through one shared script and one shared markup pattern across all pages.
@@ -552,11 +552,21 @@ All public pages load the shared style sheets, including `hud.css`, and the shar
 
 | Resolved file | `Cache-Control` |
 |---|---|
+| A versioned script or style sheet, requested as `/v/<asset version>/src/{js,styles}/...` | `public, max-age=31536000, immutable` |
 | Any `.html` page, and `.well-known/security.txt` | `no-store` |
 | Anything under `src/assets/` | `public, max-age=86400` |
 | Everything else (`src/js/`, `src/styles/`, `robots.txt`, `sitemap.xml`, white papers) | `public, max-age=300` |
 
 An alias therefore gets the same policy as the page it serves. For example, `/media` and `/white-papers` are `no-store`, like `/media.html` and `/white-papers/`.
+
+### Versioned asset URLs (KI-BDS-20261102-001)
+
+Every page loads scripts and style sheets through the `/v/<asset version>/` prefix. The asset version is the first 12 hex characters of a SHA-256 over every file path and its bytes under `src/js/` and `src/styles/`. The browser resolves relative module imports, dynamic `import()`, and CSS `@import` against the importing URL. Nested files therefore inherit the prefix, and no JS or CSS source carries a version.
+
+- The server strips the prefix and serves the file from `src/js/` or `src/styles/` only. Any other path under `/v/` returns 404.
+- The server does not check the version value. An old version URL serves the current file, so a page cached before a deploy still loads.
+- A change to any script or style sheet changes the version. Run `bun run assets:stamp` to rewrite the stamps in every page and in `server/apps.ts`. CI and `bun run qc:security` run `bun run tools/assets/version.ts --check`, which fails on a stale stamp.
+- Unversioned `/src/js/` and `/src/styles/` URLs still resolve with `public, max-age=300`.
 
 ## Content Gaps
 

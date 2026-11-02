@@ -40,6 +40,8 @@ jobs:
         run: bun run tools/qc/no-side-door.ts
       - name: Canonical website domain
         run: bun run tools/qc/canonical-domain.ts
+      - name: Versioned asset URLs are current
+        run: bun run tools/assets/version.ts --check
       - name: StateForge tests and positive/negative fixture verification
         run: bun run qc:stateforge
       - name: Generated documentation parity

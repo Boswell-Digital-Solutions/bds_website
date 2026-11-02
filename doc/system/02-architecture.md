@@ -68,7 +68,7 @@ The responsive header implementation is now consistent across the site:
 
 - every page includes `#menu-toggle`
 - every page includes `#main-nav`
-- every page loads `src/js/site.js` or `../src/js/site.js` from legal routes
+- every page loads `site.js` through the versioned prefix `/v/<asset version>/src/js/site.js`, including legal routes (§5, Versioned asset URLs)
 - the shared script toggles `.site-header__nav--open`, updates `aria-expanded`, closes on `Escape`, closes after nav-link activation, and resets on desktop resize
 
 As checked in today, mobile navigation is implemented through one shared script and one shared markup pattern across all pages.

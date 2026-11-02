@@ -6,7 +6,8 @@
     "dev": "bun run dev-server.ts",
     "start": "bun run dev-server.ts",
     "qc:stateforge": "bun run tools/qc/stateforge.ts",
-    "qc:security": "bun test tests/security.test.ts && bun run tools/qc/no-side-door.ts && bun run tools/qc/canonical-domain.ts",
+    "qc:security": "bun test tests/security.test.ts && bun run tools/qc/no-side-door.ts && bun run tools/qc/canonical-domain.ts && bun run tools/assets/version.ts --check",
+    "assets:stamp": "bun run tools/assets/version.ts --write",
     "verify:hud": "bun run tools/dev/hud-verify.ts"
   }
 }
