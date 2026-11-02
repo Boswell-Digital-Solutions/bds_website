@@ -122,7 +122,19 @@ human action.
 
 ## Shared-Asset Boundary
 
-All public pages load the shared style sheets, including `hud.css`. Only the homepage actually instantiates HUD markup and the inline HUD behavior. All pages now load the shared header script from `src/js/site.js`.
+All public pages load the shared style sheets, including `hud.css`, and the shared script `src/js/site.js`. The HUD (`src/js/hud.js`, imported by `site.js`) mounts itself on every page that links `hud.css` (see §6).
+
+## Static Cache Policy
+
+`server/security/publication.ts` sets `Cache-Control` from the resolved file, not the request path:
+
+| Resolved file | `Cache-Control` |
+|---|---|
+| Any `.html` page, and `.well-known/security.txt` | `no-store` |
+| Anything under `src/assets/` | `public, max-age=86400` |
+| Everything else (`src/js/`, `src/styles/`, `robots.txt`, `sitemap.xml`, white papers) | `public, max-age=300` |
+
+An alias therefore gets the same policy as the page it serves. For example, `/media` and `/white-papers` are `no-store`, like `/media.html` and `/white-papers/`.
 
 ## Content Gaps
 
@@ -131,7 +143,7 @@ The site communicates several future capabilities that are not implemented here 
 - dedicated product detail pages beyond AuthorForge
 - contextual HUD intelligence beyond static suggestions
 
-AuthorForge Pro checkout is now live through ForgeCustomer (Stripe-hosted),
-replacing the earlier placeholder-only commerce posture.
+AuthorForge Pro checkout runs through ForgeCustomer (Stripe-hosted), but it is
+paused until AuthorForge is released (§8: `PURCHASES_OPEN` and `CHECKOUT_OPEN`).
 
 That gap is acceptable as long as the marketing copy remains explicit about planned versus available functionality.

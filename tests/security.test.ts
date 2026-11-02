@@ -37,6 +37,20 @@ describe("publication manifest", () => {
     );
   });
 
+  test("cache policy follows the resolved file, not the request path (KI-BDS-20261002-003)", () => {
+    const cache = (path: string) => resolvePublicFile(root, path).cacheControl;
+    // Every route that serves an HTML page is no-store, whatever its alias.
+    for (const path of ["/", "/index.html", "/media", "/media/", "/media.html", "/white-papers", "/white-papers/"]) {
+      expect(cache(path), path).toBe("no-store");
+    }
+    expect(cache("/.well-known/security.txt")).toBe("no-store");
+    // Non-HTML policies are unchanged.
+    expect(cache("/src/assets/media/bds/bds-seal-500.webp")).toBe("public, max-age=86400");
+    expect(cache("/src/js/site.js")).toBe("public, max-age=300");
+    expect(cache("/robots.txt")).toBe("public, max-age=300");
+    expect(cache("/sitemap.xml")).toBe("public, max-age=300");
+  });
+
   test("rejects private repo files and undeclared white papers", () => {
     expect(() => resolvePublicFile(root, "/server/forge.ts")).toThrow();
     expect(() => resolvePublicFile(root, "/docs/page-content-v1.md")).toThrow();
