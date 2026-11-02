@@ -17,6 +17,7 @@ import { CHECKOUT_OPEN, findPolicy, validateCheckoutBody } from "../server/forge
 import { validateContactPayload } from "../server/intake.ts";
 import { validateMessage } from "../server/hud.ts";
 import { findFormerDomainWebRefs } from "../tools/qc/canonical-domain.ts";
+import { computeAssetVersion, stampAssetRefs, stampedFiles } from "../tools/assets/version.ts";
 import { ForgeError, describeForgeError } from "../src/js/forge/errors.js";
 import {
   isPubliclyVisibleProduct,
@@ -56,6 +57,24 @@ describe("publication manifest", () => {
     expect(() => resolvePublicFile(root, "/docs/page-content-v1.md")).toThrow();
     expect(() => resolvePublicFile(root, "/white-papers/private.docx")).toThrow();
     expect(() => resolvePublicFile(root, "/src/js/../server/forge.ts")).toThrow();
+  });
+
+  test("serves versioned script and style URLs as immutable (KI-BDS-20261102-001)", () => {
+    const v = "/v/0123456789ab";
+    const js = resolvePublicFile(root, `${v}/src/js/site.js`);
+    expect(js.relativePath).toBe("src/js/site.js");
+    expect(js.cacheControl).toBe("public, max-age=31536000, immutable");
+    const css = resolvePublicFile(root, `${v}/src/styles/tokens.css`);
+    expect(css.relativePath).toBe("src/styles/tokens.css");
+    expect(css.cacheControl).toBe("public, max-age=31536000, immutable");
+    // Only scripts and style sheets are versioned; nothing else is reachable under /v/.
+    expect(() => resolvePublicFile(root, `${v}/src/assets/media/bds/bds-seal-500.webp`)).toThrow();
+    expect(() => resolvePublicFile(root, `${v}/server/forge.ts`)).toThrow();
+    expect(() => resolvePublicFile(root, `${v}/index.html`)).toThrow();
+    expect(() => resolvePublicFile(root, "/v/zzzzzzzzzzzz/src/js/site.js")).toThrow();
+    expect(() => resolvePublicFile(root, "/v/0123/src/js/site.js")).toThrow();
+    expect(() => resolvePublicFile(root, `${v}/src/js/../../server/forge.ts`)).toThrow();
+    expect(() => resolvePublicFile(root, `${v}/src/js/%2e%2e/%2e%2e/server/forge.ts`)).toThrow();
   });
 
   test("publishes the Media Center at exactly three aliases (BDS-WEB-PR-v0.1 CP2)", () => {
@@ -421,7 +440,29 @@ describe("press assets (BDS-WEB-PR-v0.1 CP3)", () => {
     const html = readFileSync(join(repo, "media.html"), "utf8");
     expect(html).toContain('<input type="hidden" name="reason" value="Media / press inquiry">');
     expect(html).toContain('<input type="hidden" name="source_page" value="media.html">');
-    expect(html).toContain('<script type="module" src="/src/js/contact-form.js"></script>');
+    expect(html).toMatch(/<script type="module" src="\/v\/[0-9a-f]{12}\/src\/js\/contact-form\.js"><\/script>/);
+  });
+});
+
+describe("versioned asset stamps (KI-BDS-20261102-001)", () => {
+  const repo = join(import.meta.dir, "..");
+  test("every page and the /apps renderer carry the current asset version", () => {
+    const version = computeAssetVersion(repo);
+    for (const file of stampedFiles(repo)) {
+      const text = readFileSync(file, "utf8");
+      expect(stampAssetRefs(text, version) === text, file).toBe(true);
+      // No unversioned script or style reference survives.
+      expect(text, file).not.toMatch(/(?:href|src)="(?:\.\.\/|\/)?src\/(?:js|styles)\//);
+    }
+  });
+
+  test("stamping rewrites every reference form to the absolute versioned form", () => {
+    const v = "abcdefabcdef";
+    expect(stampAssetRefs('<link href="src/styles/a.css">', v)).toBe('<link href="/v/abcdefabcdef/src/styles/a.css">');
+    expect(stampAssetRefs('<link href="../src/styles/a.css">', v)).toBe('<link href="/v/abcdefabcdef/src/styles/a.css">');
+    expect(stampAssetRefs('<script src="/src/js/a.js">', v)).toBe('<script src="/v/abcdefabcdef/src/js/a.js">');
+    expect(stampAssetRefs('<script src="/v/000000000000/src/js/a.js">', v)).toBe('<script src="/v/abcdefabcdef/src/js/a.js">');
+    expect(stampAssetRefs('<img src="/src/assets/a.webp">', v)).toBe('<img src="/src/assets/a.webp">');
   });
 });
 
