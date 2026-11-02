@@ -61,7 +61,8 @@ New observations go below this heading or into existing linked entries. Setup ob
 - Scope found during the fix: the old rule matched only the exact path `/`, not every path that ends in `/`. So `/media`, `/media/`, `/white-papers`, and `/white-papers/` all returned `public, max-age=300` on the deployed site (checked 2026-11-02, both through Cloudflare and directly at the Render origin).
 - Fix applied 2026-11-02: `cacheControlFor()` now takes the resolved relative path. A test in `tests/security.test.ts` fails on the old code and pins `no-store` for `/`, `/media`, `/media/`, `/media.html`, `/white-papers`, and `/white-papers/`. On the local server, all six return `no-store`; assets and `robots.txt` keep their policies.
 - Also corrected in the same change: `doc/system/05-page-inventory.md` said that only the homepage mounts the HUD and that Pro checkout is live. The source shows the HUD mounts on every page, and checkout is paused (#37).
-- Disposition: **fix pending merge and deploy**. Close after the deployed site returns `no-store` for `/media`. Owner: Charles Boswell.
+- Closure receipt, 2026-11-02: PR #53 merged as `ffcb4aa`. The deployed site returned `no-store` at 00:57Z, about one minute after the merge. `/`, `/media`, `/media/`, `/media.html`, `/white-papers`, `/white-papers/`, and `/.well-known/security.txt` all return `no-store`, both through Cloudflare and directly at the Render origin. Press assets keep `public, max-age=86400`.
+- Disposition: **closed** 2026-11-02. Owner: Charles Boswell.
 
 ## KI-BDS-20261002-004: A documentation-only push may redeploy the Render service
 
@@ -71,3 +72,12 @@ New observations go below this heading or into existing linked entries. Setup ob
 - Mitigation: `render.yaml` now sets `buildFilter.ignoredPaths` for `docs/**`, `doc/**`, `*.md` and `**/*.md`. A push that changes only those paths must not build. Any other path still builds.
 - Not observed: no documentation-only push has run since the change. Not verified: the Render service may have been made by hand in the dashboard, and then it ignores `render.yaml`. The owner must confirm that the Blueprint manages the service, or set the same filter in the dashboard.
 - Disposition: **mitigated in `render.yaml`, not yet observed**, low severity. Owner: Charles Boswell.
+
+## KI-BDS-20261102-001: Cloudflare raises the browser cache time of `.js` and `.txt` files to 4 hours
+
+- Found: 2026-11-02, during the deployed-site check for KI-BDS-20261002-003.
+- Evidence: the Render origin sends `Cache-Control: public, max-age=300` for `/src/js/site.js` and `/robots.txt`. Through Cloudflare, the same files return `public, max-age=14400`. `/sitemap.xml` keeps `max-age=300`, and HTML pages keep `no-store`.
+- Root cause: likely the Cloudflare zone's Browser Cache TTL setting (4 hours). Cloudflare applies it to its default cacheable file types, which include `.js` and `.txt` but not `.xml`. The setting is in the Cloudflare dashboard, not in this repository. Unverified; the dashboard was not inspected.
+- Impact: a returning visitor can run a cached script for up to 4 hours after a deploy. HTML is unaffected.
+- Fix: set the zone's Browser Cache TTL to "Respect Existing Headers", or add a cache rule for `/src/js/*` and `/src/styles/*`. Alternatively, accept the 4-hour window.
+- Disposition: **open**, low severity. Owner: Charles Boswell (Cloudflare dashboard).
