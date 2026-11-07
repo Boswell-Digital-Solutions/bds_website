@@ -83,3 +83,29 @@ New observations go below this heading or into existing linked entries. Setup ob
 - Fix, part 2 (operator, Cloudflare dashboard): the operator set the zone's Browser Cache TTL to "Respect Existing Headers" on 2026-11-02.
 - Verification (2026-11-02, through Cloudflare): `/robots.txt`, `/src/js/site.js`, and `/sitemap.xml` return `public, max-age=300`. `/v/fd45d9db84a1/src/js/site.js` returns `public, max-age=31536000, immutable`. `/src/assets/media/bds/bds-seal-500.webp` returns `public, max-age=86400`. `/` and `/media` return `no-store`.
 - Disposition: **closed** 2026-11-02. Part 1 shipped in #55; part 2 is a dashboard setting. If the dashboard setting reverts, the versioned URLs still protect scripts and style sheets. Owner: Charles Boswell.
+
+## KI-BDS-20261107-001: The deployed host list rejects both `www` hosts
+
+- Found: 2026-11-07, BDS Client Intake WP-00 evidence (Addenda 2 and 4).
+- Evidence: the operator copied `BDS_ALLOWED_HOSTS` from the Render dashboard on 2026-11-07. The stored value writes `www\.bds-digitalsolutions.com` and `www\.boswelldigitalsolutions.com`. `isAllowedHost` in `server/security/http.ts` does an exact match after `splitCsv`, so an entry with a backslash never matches. A local run of `validateAllowedHost` at `5be4b75` returned `403 HOST_NOT_ALLOWED` for `www.bds-digitalsolutions.com` and `www.boswelldigitalsolutions.com`.
+- Not verified: whether `www` traffic reaches the origin. The apex loads on the operator's phone (2026-11-07 17:38). Cloudflare may redirect `www` to the apex first. That redirect and the Render custom-domain list for `www` were not checked.
+- Root cause: a hand-entered dashboard value. `render.yaml` writes the `www` hosts without a backslash. The difference also shows that the dashboard, not the Blueprint, sets this service's environment. See KI-BDS-20261002-004.
+- Fix (operator, Render dashboard): replace the value with `bds-website.onrender.com,bds-digitalsolutions.com,www.bds-digitalsolutions.com,127.0.0.1,localhost,[::1],::1`. No quotes and no backslashes. Then request `https://www.bds-digitalsolutions.com/` and confirm it does not return 403.
+- Disposition: **open**. Owner: Charles Boswell.
+
+## KI-BDS-20261107-002: The deployed host list allows the former domain
+
+- Found: 2026-11-07, with KI-BDS-20261107-001.
+- Evidence: the stored `BDS_ALLOWED_HOSTS` contains `boswelldigitalsolutions.com`, the former domain. `tests/security.test.ts` names that domain as FORMER and requires the default allowlist to refuse it. `render.yaml` does not list it.
+- Root cause: unknown. Either the operator intends to serve the former domain again, which the repository does not reflect, or the stored value is stale.
+- Fix: the operator decides. To refuse the former domain, apply the value in KI-BDS-20261107-001. To serve it, keep it in the dashboard and update `render.yaml` and the tests in the same change.
+- Disposition: **open**, awaiting an operator decision. Owner: Charles Boswell.
+
+## KI-BDS-20261107-003: The Render origin accepts requests that bypass Cloudflare
+
+- Found: 2026-11-07, BDS Client Intake WP-00 evidence (Addendum 1, CF-01).
+- Evidence: the allowlist includes `bds-website.onrender.com`. `validateEdgeToken` in `server/security/http.ts` runs only when `BDS_EDGE_TOKEN` is set or `BDS_REQUIRE_EDGE_TOKEN=true`. The operator confirmed on 2026-11-07 that neither is set on the Render service. The complete list has four variables.
+- Impact: a client can call the origin directly and skip every Cloudflare control: WAF rules, rate limits and any future Turnstile check. Origin rate limiting would also see Cloudflare's address unless `CF-Connecting-IP` is trusted, and that header is trustworthy only behind the edge token.
+- Fix: the mechanism already exists. Set a Cloudflare request-header rule that adds `x-bds-edge-token`, set the same value as `BDS_EDGE_TOKEN` on Render, then set `BDS_REQUIRE_EDGE_TOKEN=true`. The edge plan in `docs/plans/BDS_Website_CSSA_Sentinel_Security_Plan_Set_2026-06-12/`, component 04, covers this. Its status was not checked.
+- Related: `BDS_INTAKE_URL` is also not set, so `/api/intake/consultation` returns 503 and every form falls back to email. The BDS Client Intake plan set tracks that gap.
+- Disposition: **open**. Owner: Charles Boswell.
