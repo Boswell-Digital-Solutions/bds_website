@@ -71,7 +71,10 @@ New observations go below this heading or into existing linked entries. Setup ob
 - Not verified: the Render dashboard setting for this service. The deploy does not read Markdown, so a documentation-only deploy publishes no new content.
 - Mitigation: `render.yaml` now sets `buildFilter.ignoredPaths` for `docs/**`, `doc/**`, `*.md` and `**/*.md`. A push that changes only those paths must not build. Any other path still builds.
 - Not observed: no documentation-only push has run since the change. Not verified: the Render service may have been made by hand in the dashboard, and then it ignores `render.yaml`. The owner must confirm that the Blueprint manages the service, or set the same filter in the dashboard.
-- Disposition: **mitigated in `render.yaml`, not yet observed**, low severity. Owner: Charles Boswell.
+- Observed, 2026-11-07: the mitigation does not work. PR #57 changed only `docs/KNOWN_ISSUES.md`. Its merge `c521045` still started deploy `dep-dbnqpsp42hec73counq0` (trigger `new_commit`, live at 22:58Z, about 30 s). Render did not apply the `buildFilter` from `render.yaml`.
+- Root cause: the Blueprint does not manage this service. The dashboard sets its configuration. Further evidence: the deployed `BDS_ALLOWED_HOSTS` and health check path differ from `render.yaml` (KI-BDS-20261107-001).
+- Fix (operator, Render dashboard): in the `bds_website` service settings, set the build filter to ignore `docs/**`, `doc/**`, `*.md` and `**/*.md`. Then confirm that the next documentation-only merge starts no deploy. This entry's own merge will also deploy once.
+- Disposition: **open**, low severity. The `render.yaml` mitigation has no effect. Owner: Charles Boswell.
 
 ## KI-BDS-20261102-001: Cloudflare raises the browser cache time of `.js` and `.txt` files to 4 hours
 
