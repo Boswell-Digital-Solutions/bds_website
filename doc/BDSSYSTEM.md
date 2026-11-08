@@ -427,22 +427,22 @@ bds_website/
 | Page | Path | Status |
 |------|------|--------|
 | Homepage | `index.html` | Primary authored page; most complete experience |
-| Products | `products.html` | Live product-entry page for applications |
+| Products | `products.html` | Live product-entry page for applications. **Under construction while `SALES_OPEN` is `false`.** |
 | Services | `services.html` | Live services-entry page |
 | Forge | `forge.html` | Live platform overview page |
 | Meet SMITH | `meet-smith.html` | Live SMITH explainer framing it as the continuous authority HUD |
 | Architecture | `architecture.html` | Live public architecture explainer with Mermaid layered-system diagram |
 | White Papers | `white-papers/index.html` | Live public research archive with dated metadata and archive-style paper indexing |
-| Store | `store.html` | Live licensing surface; Pro lane links to `pricing.html` |
-| Pricing | `pricing.html` | Live catalog + Stripe Checkout start (ForgeCustomer) |
+| Store | `store.html` | Live licensing surface; Pro lane links to `pricing.html`. **Under construction while `SALES_OPEN` is `false`.** |
+| Pricing | `pricing.html` | Live catalog + Stripe Checkout start (ForgeCustomer). **Under construction while `SALES_OPEN` is `false`.** |
 | Security | `security.html` | Live security posture and responsible-disclosure page |
 | About | `about.html` | Live company identity page |
 | Founder | `founder.html` | Live founder background and governance-philosophy page |
 | Media Center | `media.html` (served at `/media`, `/media/`, `/media.html`) | Static press page: company snapshot, three boilerplates, founder profile, AuthorForge press section (status: in development), story angles, technical-resource links, news state, media contact. In the main navigation before Contact and in the homepage Company footer group. It also has press-asset downloads and a media inquiry form on the governed intake lane (BDS-WEB-PR-v0.1 CP3). |
 | Contact | `contact.html` | Live inquiry and support page wired to the public intake service |
-| AuthorForge | `authorforge.html` | Live product detail page |
-| AuthorForge Founder | `authorforge-founder.html` | Live supporting detail page |
-| AuthorForge Cost Comparison | `authorforge-cost-comparison.html` | Live supporting detail page |
+| AuthorForge | `authorforge.html` | Live product detail page. **Under construction while `SALES_OPEN` is `false`.** |
+| AuthorForge Founder | `authorforge-founder.html` | Live supporting detail page. **Under construction while `SALES_OPEN` is `false`.** |
+| AuthorForge Cost Comparison | `authorforge-cost-comparison.html` | Live supporting detail page. **Under construction while `SALES_OPEN` is `false`.** |
 
 ## Legal Pages
 
@@ -461,12 +461,12 @@ require a Supabase session (except the dedicated state pages). See §9.
 
 | Page | Path | Status |
 |------|------|--------|
-| Sign in | `login.html` | Supabase login / sign-up / magic link |
-| Account dashboard | `account.html` | Subscription, licenses, installations/devices, usage, deletion controls |
-| Checkout success | `checkout/success.html` | Polls `GET /v1/subscriptions` until `grants_cloud: true` |
-| Checkout canceled | `checkout/cancel.html` | No-charge return page |
-| Account suspended | `account/suspended.html` | Landing page for `403 CUSTOMER_SUSPENDED` |
-| Account closed | `account/closed.html` | Landing page for closed/deleted accounts |
+| Sign in | `login.html` | Supabase login / sign-up / magic link. **Under construction while `SALES_OPEN` is `false`.** |
+| Account dashboard | `account.html` | Subscription, licenses, installations/devices, usage, deletion controls. **Under construction while `SALES_OPEN` is `false`.** |
+| Checkout success | `checkout/success.html` | Polls `GET /v1/subscriptions` until `grants_cloud: true`. **Under construction while `SALES_OPEN` is `false`.** |
+| Checkout canceled | `checkout/cancel.html` | No-charge return page. **Under construction while `SALES_OPEN` is `false`.** |
+| Account suspended | `account/suspended.html` | Landing page for `403 CUSTOMER_SUSPENDED`. **Under construction while `SALES_OPEN` is `false`.** |
+| Account closed | `account/closed.html` | Landing page for closed/deleted accounts. **Under construction while `SALES_OPEN` is `false`.** |
 
 ## Media Center Truth Rules
 
@@ -523,7 +523,8 @@ human action.
 - `robots.txt` keeps the login, account, and checkout exclusions and adds
   `Sitemap: https://bds-digitalsolutions.com/sitemap.xml`.
 - `sitemap.xml` lists the canonical URL of every page without `noindex`, plus
-  `/apps`. `/apps/<slug>` detail pages are not listed: Forge_Command publishes that
+  `/apps`. While `SALES_OPEN` is `false`, it omits the sales pages and `/apps`
+  (see Sales Launch Switch). `/apps/<slug>` detail pages are not listed: Forge_Command publishes that
   catalog, and a static sitemap would drift from it. A test fails when a page's
   canonical URL and the sitemap disagree, so a new page must be added to both.
 - `media.html` carries one `application/ld+json` Organization block: legal name,
@@ -567,6 +568,32 @@ Every page loads scripts and style sheets through the `/v/<asset version>/` pref
 - The server does not check the version value. An old version URL serves the current file, so a page cached before a deploy still loads.
 - A change to any script or style sheet changes the version. Run `bun run assets:stamp` to rewrite the stamps in every page and in `server/apps.ts`. CI and `bun run qc:security` run `bun run tools/assets/version.ts --check`, which fails on a stale stamp.
 - Unversioned `/src/js/` and `/src/styles/` URLs still resolve with `public, max-age=300`.
+
+## Sales Launch Switch: Under-Construction Page
+
+The app-sales surface is closed until the operator rolls it out (operator decision, 2026-11-08). `server/launch.ts` holds one flag, `SALES_OPEN`, which is `false`. While it is `false`, the server returns `under-construction.html` in place of each sales page. The response is `200`, `Cache-Control: no-store`, and `X-Robots-Tag: noindex`. The URL does not change, so links into the sales pages still work.
+
+The gate covers these request paths:
+
+- `/apps`, `/apps/`, and every `/apps/<slug>` page;
+- `products.html`, `store.html`, and `pricing.html`;
+- `authorforge.html`, `authorforge-founder.html`, and `authorforge-cost-comparison.html`;
+- `login.html`, `account.html`, `account/closed.html`, and `account/suspended.html`;
+- `checkout/success.html` and `checkout/cancel.html`.
+
+All other pages stay open, including the homepage, Media Center, Contact, white papers, and legal pages. The gate keys on the resolved file, so every alias of a sales page is covered. A non-GET request to a gated path returns `405`. The BFF and intake APIs are not gated. Checkout stays refused separately by `CHECKOUT_OPEN` (§8).
+
+- `under-construction.html` is not in the route map. It is reachable only through the gate.
+- The page is served at nested paths such as `/account/closed.html`, so every link in it is absolute. It links no sales page.
+- While the gate is closed, `sitemap.xml` does not list the sales pages or `/apps`. A test checks the sitemap against `SALES_OPEN`.
+- The original sales pages stay in the repository unchanged. Other pages still link to them, and those links lead to the under-construction page.
+
+To roll out the sales surface:
+
+1. Set `SALES_OPEN` to `true` in `server/launch.ts`.
+2. Add the sales pages and `/apps` back to `sitemap.xml`.
+3. When checkout opens, set `PURCHASES_OPEN` and `CHECKOUT_OPEN` (§8).
+4. Run `bun test tests` and merge through a reviewed pull request.
 
 ## Content Gaps
 
@@ -819,10 +846,11 @@ When the filter skips the workflow, the required check stays pending and blocks 
 ## Known Risks
 
 1. AuthorForge Pro checkout is **paused** until AuthorForge is released (operator decision, 2026-10-02). `src/js/forge/pricing.js` `PURCHASES_OPEN` hides the Upgrade action, and `server/forge.ts` `CHECKOUT_OPEN` makes the BFF refuse `POST /v1/checkout` with `503 CHECKOUT_PAUSED`. To reopen, set both to `true`. The plans themselves stay in ForgeCustomer and Stripe. Before the pause the flow ran through ForgeCustomer (Stripe-hosted) via `pricing.html`; the one-time Standard license still uses contact-based coordination. Checkout correctness depends on a reachable ForgeCustomer and the webhook-driven subscription projection (the success page polls rather than trusting the redirect).
-2. Only AuthorForge has a dedicated detail page today; additional product pages will need the same treatment as the portfolio expands.
-3. The contact form now depends on public intake-service availability; if that service is down, users fall back to business email.
-4. Security and ecosystem claims can outpace implementation if future copy is not kept precise.
-5. Repeated header/footer markup increases drift risk across pages.
+2. The app-sales surface shows an under-construction page until the operator rolls it out (operator decision, 2026-11-08). The flag is `server/launch.ts` `SALES_OPEN`. §5 lists the gated pages and the rollout steps. While it is closed, the sign-in and account pages are unreachable.
+3. Only AuthorForge has a dedicated detail page today; additional product pages will need the same treatment as the portfolio expands.
+4. The contact form now depends on public intake-service availability; if that service is down, users fall back to business email.
+5. Security and ecosystem claims can outpace implementation if future copy is not kept precise.
+6. Repeated header/footer markup increases drift risk across pages.
 
 ## Maintenance Rule
 

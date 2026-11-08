@@ -13,6 +13,7 @@ import {
   validateSameOrigin,
 } from "../server/security/http.ts";
 import { resolvePublicFile } from "../server/security/publication.ts";
+import { SALES_FILES, SALES_OPEN, UNDER_CONSTRUCTION_PAGE, isSalesPath, isUnderConstruction } from "../server/launch.ts";
 import { CHECKOUT_OPEN, findPolicy, validateCheckoutBody } from "../server/forge.ts";
 import { validateContactPayload } from "../server/intake.ts";
 import { validateMessage } from "../server/hud.ts";
@@ -466,6 +467,59 @@ describe("versioned asset stamps (KI-BDS-20261102-001)", () => {
   });
 });
 
+describe("sales launch switch: under-construction page", () => {
+  const repo = join(import.meta.dir, "..");
+  const SALES = [
+    "/store.html", "/pricing.html", "/products.html",
+    "/authorforge.html", "/authorforge-founder.html", "/authorforge-cost-comparison.html",
+    "/apps", "/apps/", "/apps/authorforge",
+    "/login.html", "/account.html", "/account/closed.html", "/account/suspended.html",
+    "/checkout/success.html", "/checkout/cancel.html",
+  ];
+  const OPEN = [
+    "/", "/index.html", "/about.html", "/founder.html", "/services.html", "/forge.html",
+    "/meet-smith.html", "/architecture.html", "/security.html", "/contact.html",
+    "/media", "/media/", "/media.html", "/white-papers/", "/legal/terms.html", "/legal/refund.html",
+    "/robots.txt", "/sitemap.xml", "/.well-known/security.txt", "/src/js/site.js",
+  ];
+
+  test("sales stay closed until the operator opens them", () => {
+    expect(SALES_OPEN).toBe(false);
+  });
+
+  test("every app-sales page, the /apps catalog, and the customer pages get the placeholder", () => {
+    for (const path of SALES) {
+      expect(isSalesPath(repo, path), path).toBe(true);
+      expect(isUnderConstruction(repo, path), path).toBe(true);
+    }
+  });
+
+  test("the rest of the site stays open", () => {
+    for (const path of OPEN) {
+      expect(isUnderConstruction(repo, path), path).toBe(false);
+    }
+    expect(isUnderConstruction(repo, "/server/forge.ts")).toBe(false);
+    expect(isUnderConstruction(repo, "/apps-not-a-route")).toBe(false);
+  });
+
+  test("every listed sales file exists, and the placeholder itself is not routable", () => {
+    for (const file of SALES_FILES) {
+      expect(statSync(join(repo, file)).isFile(), file).toBe(true);
+    }
+    expect(() => resolvePublicFile(root, `/${UNDER_CONSTRUCTION_PAGE}`)).toThrow();
+  });
+
+  test("the placeholder is noindex, uses absolute links, and links no sales page", () => {
+    const html = readFileSync(join(repo, UNDER_CONSTRUCTION_PAGE), "utf8");
+    expect(html).toContain('<meta name="robots" content="noindex">');
+    // Served at nested paths such as /account/closed.html, so every link is absolute.
+    for (const [, href] of html.matchAll(/(?:href|src)="([^"]+)"/g)) {
+      expect(href.startsWith("/") || href.startsWith("https://") || href.startsWith("#"), href).toBe(true);
+      expect(isSalesPath(repo, href.split("#")[0] || "/"), href).toBe(false);
+    }
+  });
+});
+
 describe("hud message payload", () => {
   test("accepts a bounded message and trims it", () => {
     expect(validateMessage({ message: "  hello there  " })).toEqual({ message: "hello there" });
@@ -496,15 +550,19 @@ describe("discovery: sitemap, robots, structured data (BDS-WEB-PR-v0.1 CP4)", ()
     expect(resolvePublicFile(root, "/sitemap.xml").contentType).toBe("application/xml; charset=utf-8");
   });
 
-  test("the sitemap lists exactly the canonical URL of every indexable page, plus /apps", () => {
+  test("the sitemap lists exactly the canonical URL of every indexable page, plus /apps once sales open", () => {
+    // While SALES_OPEN is false the sales pages serve the under-construction
+    // page (server/launch.ts), so they are not listed.
     const expected = readdirSync(repo, { recursive: true })
       .map(String)
       .filter((path) => path.endsWith(".html") && !/^(node_modules|out|dist|docs|doc)\//.test(path))
+      .filter((path) => SALES_OPEN || !SALES_FILES.has(path))
       .map((path) => read(path))
       .filter((html) => !html.includes('name="robots" content="noindex"'))
       .map((html) => html.match(/<link rel="canonical" href="([^"]+)"/)?.[1])
       .filter((url): url is string => Boolean(url));
-    expect(sitemapUrls().sort()).toEqual([...expected, `${CANONICAL}/apps`].sort());
+    const apps = SALES_OPEN ? [`${CANONICAL}/apps`] : [];
+    expect(sitemapUrls().sort()).toEqual([...expected, ...apps].sort());
   });
 
   test("every sitemap URL uses the canonical host and no customer surface is listed", () => {
