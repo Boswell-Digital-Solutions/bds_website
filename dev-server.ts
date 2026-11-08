@@ -5,6 +5,7 @@ import { handleAppsRoute } from "./server/apps.ts";
 import { handleForgeApi } from "./server/forge.ts";
 import { handleHudApi } from "./server/hud.ts";
 import { handleIntakeApi } from "./server/intake.ts";
+import { isUnderConstruction, sendUnderConstruction } from "./server/launch.ts";
 import { resolvePublicFile } from "./server/security/publication.ts";
 import {
   HttpError,
@@ -60,11 +61,28 @@ const server = createServer(async (request, response) => {
     if (await handleHudApi(request, response, url)) {
       return;
     }
+
+    const method = (request.method ?? "GET").toUpperCase();
+    // App-sales pages show the under-construction page until SALES_OPEN
+    // (server/launch.ts). Checked before /apps so the catalog is covered too.
+    if (isUnderConstruction(rootDir, url.pathname)) {
+      if (method !== "GET" && method !== "HEAD") {
+        sendJson(
+          response,
+          405,
+          errorPayload("METHOD_NOT_ALLOWED", "Method not allowed.", correlationId),
+          { allow: "GET, HEAD" }
+        );
+        return;
+      }
+      await sendUnderConstruction(response, method, rootDir);
+      return;
+    }
+
     if (await handleAppsRoute(request, response, url, rootDir, correlationId)) {
       return;
     }
 
-    const method = (request.method ?? "GET").toUpperCase();
     if (method !== "GET" && method !== "HEAD") {
       sendJson(
         response,
