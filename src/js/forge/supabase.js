@@ -3,7 +3,10 @@
 // the resulting access token is then forwarded to our own server, which proxies
 // to ForgeCustomer. The browser never talks to ForgeCustomer directly.
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+// Self-hosted bundle of @supabase/supabase-js 2.45.0 (see tools/vendor/build-supabase.sh).
+// Loading it from our own origin keeps the auth path free of third-party scripts
+// and lets the CSP's `script-src 'self'` be enforced.
+import { createClient } from "../vendor/supabase-js.js";
 import { getPublicConfig } from "./config.js";
 
 let clientPromise = null;

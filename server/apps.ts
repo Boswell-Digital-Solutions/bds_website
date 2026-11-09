@@ -232,12 +232,12 @@ function pageShell(input: {
   <link rel="icon" type="image/png" href="/src/assets/images/bds-logo.png">
   <link rel="apple-touch-icon" href="/src/assets/images/bds-logo.png">
   <meta name="theme-color" content="#0F172A">
-  <link rel="stylesheet" href="/v/fd45d9db84a1/src/styles/global.css">
-  <link rel="stylesheet" href="/v/fd45d9db84a1/src/styles/header.css">
-  <link rel="stylesheet" href="/v/fd45d9db84a1/src/styles/footer.css">
-  <link rel="stylesheet" href="/v/fd45d9db84a1/src/styles/hud.css">
-  <link rel="stylesheet" href="/v/fd45d9db84a1/src/styles/pages/site-pages.css">
-  <link rel="stylesheet" href="/v/fd45d9db84a1/src/styles/pages/apps.css">
+  <link rel="stylesheet" href="/v/8ec2933956c8/src/styles/global.css">
+  <link rel="stylesheet" href="/v/8ec2933956c8/src/styles/header.css">
+  <link rel="stylesheet" href="/v/8ec2933956c8/src/styles/footer.css">
+  <link rel="stylesheet" href="/v/8ec2933956c8/src/styles/hud.css">
+  <link rel="stylesheet" href="/v/8ec2933956c8/src/styles/pages/site-pages.css">
+  <link rel="stylesheet" href="/v/8ec2933956c8/src/styles/pages/apps.css">
 </head>
 <body>
   <a href="#main" class="skip-link">Skip to main content</a>
@@ -271,7 +271,7 @@ function pageShell(input: {
       </div>
     </div>
   </footer>
-  <script type="module" src="/v/fd45d9db84a1/src/js/site.js"></script>
+  <script type="module" src="/v/8ec2933956c8/src/js/site.js"></script>
 </body>
 </html>`;
 }

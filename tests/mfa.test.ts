@@ -14,22 +14,38 @@ const removeFactor = mock(async ({ factorId }: { factorId: string }) => {
   operations.push(`remove:${factorId}`);
   return { error: cleanupError };
 });
+// Synthetic TOTP: a factor accepts exactly the code mapped to it here.
+let validCodes: Record<string, string>;
+const challengeFactor = mock(async ({ factorId }: { factorId: string }) => {
+  operations.push(`challenge:${factorId}`);
+  return { data: { id: `challenge-${factorId}` }, error: null };
+});
+const verifyFactor = mock(async ({ factorId, code }: { factorId: string; code: string }) => {
+  operations.push(`verify:${factorId}`);
+  return { error: validCodes[factorId] === code ? null : new Error("Synthetic invalid code") };
+});
 mock.module("../src/js/forge/supabase.js", () => ({
   getSupabase: async () => ({ auth: { mfa: {
     enroll: enrollFactor,
-    listFactors: async () => ({ data: { all: factors }, error: listError }),
+    listFactors: async () => ({
+      data: { all: factors, totp: factors.filter((factor) => factor.factor_type === "totp") },
+      error: listError,
+    }),
     unenroll: removeFactor,
+    challenge: challengeFactor,
+    verify: verifyFactor,
     getAuthenticatorAssuranceLevel: async () => assurance,
   } } }),
 }));
-const { enroll, describeMfaError, hasPendingChallenge } = await import("../src/js/forge/mfa.js");
+const { enroll, describeMfaError, hasPendingChallenge, removeVerifiedFactor } = await import("../src/js/forge/mfa.js");
 
 beforeEach(() => {
   factors = [];
   listError = null;
   cleanupError = null;
   operations = [];
-  assurance = { data: { currentLevel: "aal1", nextLevel: "aal2" }, error: null };
+  validCodes = {};
+  assurance ={ data: { currentLevel: "aal1", nextLevel: "aal2" }, error: null };
   enrollFactor.mockClear();
   removeFactor.mockClear();
   response = {
@@ -76,6 +92,57 @@ describe("MFA sign-in gate", () => {
   test("fails closed when current factor lookup fails", async () => {
     listError = new Error("Synthetic current factor lookup unavailable");
     await expect(hasPendingChallenge()).rejects.toThrow("Synthetic current factor lookup unavailable");
+  });
+});
+
+describe("MFA factor removal step-up", () => {
+  const primary = { id: "primary", factor_type: "totp", status: "verified", friendly_name: "Authenticator 1" };
+  const backup = { id: "backup", factor_type: "totp", status: "verified", friendly_name: "Authenticator 2" };
+
+  test("removes a factor only after a valid fresh code", async () => {
+    factors = [primary];
+    validCodes = { primary: "123456" };
+    await removeVerifiedFactor("primary", "123456");
+    expect(operations).toEqual(["challenge:primary", "verify:primary", "remove:primary"]);
+  });
+
+  test("accepts a code from the backup authenticator to remove a lost primary", async () => {
+    factors = [primary, backup];
+    validCodes = { backup: "654321" };
+    await removeVerifiedFactor("primary", "654321");
+    expect(operations.at(-1)).toBe("remove:primary");
+  });
+
+  test("never removes a factor when the code is wrong", async () => {
+    factors = [primary];
+    validCodes = { primary: "123456" };
+    await expect(removeVerifiedFactor("primary", "000000")).rejects.toThrow();
+    expect(operations.some((op) => op.startsWith("remove:"))).toBe(false);
+  });
+
+  test("rejects a missing or malformed code before contacting the provider", async () => {
+    factors = [primary];
+    for (const code of ["", "12345", "abcdef", "1234567", undefined]) {
+      await expect(removeVerifiedFactor("primary", code)).rejects.toThrow(
+        "Enter the 6-digit code from your authenticator app."
+      );
+    }
+    expect(operations).toEqual([]);
+  });
+
+  test("refuses to remove a factor that is not a verified factor on this account", async () => {
+    factors = [primary, { id: "pending", factor_type: "totp", status: "unverified", friendly_name: "x" }];
+    validCodes = { primary: "123456" };
+    await expect(removeVerifiedFactor("pending", "123456")).rejects.toThrow(
+      "That authenticator is no longer on this account."
+    );
+    expect(operations).toEqual([]);
+  });
+
+  test("fails closed when the factor list cannot be read", async () => {
+    listError = new Error("Synthetic factor listing unavailable");
+    await expect(removeVerifiedFactor("primary", "123456")).rejects.toThrow(listError.message);
+    expect(operations).toEqual([]);
   });
 });
 
