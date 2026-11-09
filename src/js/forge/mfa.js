@@ -99,6 +99,24 @@ export async function unenroll(factorId) {
   }
 }
 
+/** Remove a verified authenticator only after a fresh code from one the user
+ *  still holds. A stolen or left-open session cannot strip two-factor
+ *  protection without the second factor itself (plan §11 step-up for
+ *  "MFA change"). The code may come from any enrolled authenticator, including
+ *  the one being removed, so replacing a device stays possible. */
+export async function removeVerifiedFactor(factorId, code) {
+  const normalized = String(code ?? "").trim();
+  if (!/^\d{6}$/.test(normalized)) {
+    throw new Error("Enter the 6-digit code from your authenticator app.");
+  }
+  const factors = await listFactors();
+  if (!factors.some((factor) => factor.id === factorId)) {
+    throw new Error("That authenticator is no longer on this account.");
+  }
+  await verifyAnyFactor(normalized);
+  await unenroll(factorId);
+}
+
 /** Verify a code against whichever enrolled factor accepts it. Used at
  *  sign-in, where the challenger doesn't know which of possibly several
  *  enrolled authenticators (a user may keep a backup) produced the code. */

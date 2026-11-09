@@ -7,7 +7,7 @@ import { forge } from "./api.js";
 import { signOut } from "./supabase.js";
 import { bootstrapSession, handleForgeError } from "./session.js";
 import { describeForgeError } from "./errors.js";
-import { listFactors, enroll, verifyCode, unenroll, describeMfaError } from "./mfa.js";
+import { listFactors, enroll, verifyCode, unenroll, removeVerifiedFactor, describeMfaError } from "./mfa.js";
 
 // --- small DOM/format helpers ---------------------------------------------
 
@@ -160,28 +160,51 @@ function renderMfaEnabled(node, factors) {
     <button type="button" class="btn btn-ghost btn-small" data-mfa-enroll>Add backup authenticator</button>
     <p class="page-form__status" data-mfa-status role="status" aria-live="polite"></p>`;
 
-  const status = node.querySelector("[data-mfa-status]");
-
   node.querySelectorAll("[data-mfa-remove]").forEach((button) => {
-    button.addEventListener("click", async () => {
-      const factorId = button.getAttribute("data-mfa-remove");
-      button.disabled = true;
-      button.textContent = "Removing…";
-      try {
-        await unenroll(factorId);
-        // renderMfa()'s reconciliation reports the new (possibly now-zero) factor
-        // count to ForgeCustomer — no separate sync call needed here.
-        await renderMfa();
-      } catch {
-        status.dataset.state = "error";
-        status.textContent = "Couldn't remove this right now. Try again in a moment.";
-        button.disabled = false;
-        button.textContent = "Remove";
-      }
-    });
+    button.addEventListener("click", () => confirmMfaRemoval(node, button.getAttribute("data-mfa-remove")));
   });
 
   node.querySelector("[data-mfa-enroll]").addEventListener("click", () => startMfaEnrollment(node));
+}
+
+// Removing an authenticator is a sensitive change: require a fresh code first
+// (see removeVerifiedFactor in mfa.js), never a single click.
+function confirmMfaRemoval(node, factorId) {
+  node.innerHTML = `
+    <p class="forge-section__intro">To remove this authenticator, enter a current 6-digit code from any authenticator on your account.</p>
+    <div class="page-field">
+      <label for="mfa-remove-code">6-digit code</label>
+      <input id="mfa-remove-code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*" maxlength="6">
+    </div>
+    <p class="page-form__status" data-mfa-status role="status" aria-live="polite"></p>
+    <button type="button" class="btn btn-primary btn-small" data-mfa-remove-confirm>Remove authenticator</button>
+    <button type="button" class="btn btn-ghost btn-small" data-mfa-remove-cancel>Cancel</button>`;
+
+  const status = node.querySelector("[data-mfa-status]");
+  const codeInput = node.querySelector("#mfa-remove-code");
+  const confirm = node.querySelector("[data-mfa-remove-confirm]");
+  codeInput.focus();
+
+  node.querySelector("[data-mfa-remove-cancel]").addEventListener("click", () => renderMfa());
+
+  confirm.addEventListener("click", async () => {
+    confirm.disabled = true;
+    status.dataset.state = "pending";
+    status.textContent = "Checking code…";
+    try {
+      await removeVerifiedFactor(factorId, codeInput.value);
+      // renderMfa()'s reconciliation reports the new (possibly now-zero) factor
+      // count to ForgeCustomer — no separate sync call needed here.
+      await renderMfa();
+    } catch {
+      // One generic message for a wrong, expired, or rate-limited code (plan §11).
+      status.dataset.state = "error";
+      status.textContent = "That code didn't work, so nothing was removed. Check your authenticator and try again.";
+      confirm.disabled = false;
+      codeInput.value = "";
+      codeInput.focus();
+    }
+  });
 }
 
 function renderMfaSetup(node) {

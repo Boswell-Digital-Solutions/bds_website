@@ -35,23 +35,43 @@ const REPORT_TO = JSON.stringify({
   endpoints: [{ url: "/api/security/csp-report" }],
 });
 
-const CSP_REPORT_ONLY = [
-  "default-src 'self'",
-  "base-uri 'none'",
-  "object-src 'none'",
-  "frame-ancestors 'none'",
-  "form-action 'self' mailto:",
-  "script-src 'self'",
-  "style-src 'self'",
-  "img-src 'self' data:",
-  "font-src 'self'",
-  "connect-src 'self'",
-  "manifest-src 'self'",
-  "worker-src 'self'",
-  "upgrade-insecure-requests",
-  "report-uri /api/security/csp-report",
-  "report-to bds-csp",
-].join("; ");
+/** Origin of the configured Supabase project, or null when unset or malformed.
+ *  The browser talks to Supabase Auth directly (login, MFA, token refresh), so
+ *  connect-src must allow that one origin and nothing broader. */
+export function supabaseConnectOrigin(raw = process.env.SUPABASE_URL): string | null {
+  if (!raw) return null;
+  try {
+    const url = new URL(raw);
+    if (url.protocol !== "https:" && url.hostname !== "localhost" && url.hostname !== "127.0.0.1") {
+      return null;
+    }
+    return url.origin;
+  } catch {
+    return null;
+  }
+}
+
+export function buildCsp(supabaseOrigin = supabaseConnectOrigin()): string {
+  const connect = supabaseOrigin ? `connect-src 'self' ${supabaseOrigin}` : "connect-src 'self'";
+  return [
+    "default-src 'self'",
+    "base-uri 'none'",
+    "object-src 'none'",
+    "frame-ancestors 'none'",
+    "form-action 'self' mailto:",
+    // Every script, including the Supabase client (src/js/vendor/), is same-origin.
+    "script-src 'self'",
+    "style-src 'self'",
+    "img-src 'self' data:",
+    "font-src 'self'",
+    connect,
+    "manifest-src 'self'",
+    "worker-src 'self'",
+    "upgrade-insecure-requests",
+    "report-uri /api/security/csp-report",
+    "report-to bds-csp",
+  ].join("; ");
+}
 
 export class HttpError extends Error {
   readonly status: number;
@@ -80,7 +100,7 @@ export function errorPayload(
 
 export function securityHeaders(extra: Record<string, string> = {}): Record<string, string> {
   const headers: Record<string, string> = {
-    "content-security-policy-report-only": CSP_REPORT_ONLY,
+    "content-security-policy-report-only": buildCsp(),
     "cross-origin-opener-policy": "same-origin",
     "cross-origin-resource-policy": "same-origin",
     "origin-agent-cluster": "?1",
