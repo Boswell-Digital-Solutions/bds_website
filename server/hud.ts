@@ -32,6 +32,7 @@ import {
   validateJsonContentType,
   validateSameOrigin,
 } from "./security/http.ts";
+import { usableSupabaseAnonKey } from "./readiness.ts";
 
 const API_PREFIX = "/api/hud";
 
@@ -96,7 +97,8 @@ async function proxyRpc(
   token: string
 ): Promise<void> {
   const base = parseConfiguredBaseUrl(process.env.SUPABASE_URL, "SUPABASE_URL", "SUPABASE_ALLOWED_HOSTS");
-  const anonKey = process.env.SUPABASE_ANON_KEY;
+  // Only a publishable/anon-shaped key is sent; a secret key would bypass RLS.
+  const anonKey = usableSupabaseAnonKey();
   if (!base || !anonKey) {
     throw new HttpError(503, "INTEGRATION_UNCONFIGURED", "The support service is not configured.");
   }

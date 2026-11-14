@@ -104,6 +104,58 @@ The two Supabase values are public and reach the browser through
 `GET /api/public-config`. No secret is ever exposed there. ForgeCustomer
 validates JWTs from the same Supabase project. See `.env.example`.
 
+## Liveness and Readiness
+
+The server answers two health paths before the BFF and before static file
+resolution, in `dev-server.ts`. Both accept `GET` and `HEAD` only and send
+`Cache-Control: no-store`. The host allowlist and the edge-token check apply
+to them, as to every request.
+
+| Path | Status | Meaning |
+|------|--------|---------|
+| `/healthz` | always 200 | The process answers. It does not read configuration. |
+| `/readyz` | 200 or 503 | The commerce configuration is present and usable. |
+
+`/readyz` calls `readinessReport()` in `server/readiness.ts`. The check is a
+pure function of the environment. It does not call ForgeCustomer, Supabase or
+the intake service, so readiness does not follow their uptime or cold starts.
+The live path is proved by the probe in `docs/operations/render_probe.json`.
+
+Critical settings. Each failure makes `/readyz` return 503:
+
+| Setting | Unusable when |
+|---------|---------------|
+| `FORGECUSTOMER_API_BASE` | unset or blank; not an `http(s)` URL; leading or trailing space; credentials, query or fragment; a path; plain HTTP in deployed mode or to a non-local host; a local host in deployed mode; a host outside `FORGECUSTOMER_ALLOWED_HOSTS` when that is set |
+| `SUPABASE_URL` | the same URL rules, with `SUPABASE_ALLOWED_HOSTS` |
+| `SUPABASE_ANON_KEY` | unset or blank; an `sb_secret_` key or a `service_role` JWT (`secret_key_shape`); not `sb_publishable_…` and not a three-part JWT; a JWT whose role is not `anon`; a JWT whose `ref` differs from the `*.supabase.co` project in `SUPABASE_URL` |
+| `BDS_EDGE_TOKEN` | unset while edge authentication is on |
+
+Deployed mode is `RENDER=true` (Render sets it) or `NODE_ENV=production`.
+
+`BDS_INTAKE_URL` is advisory. When it is unset or unusable, `/readyz` lists it
+under `advisory` and stays 200, because every form falls back to email
+(KI-BDS-20261107-003).
+
+The 503 body names the setting and a fixed reason code. It never holds a value,
+a part of a value or a length:
+
+```json
+{ "status": "not_ready",
+  "failed": [{ "setting": "SUPABASE_ANON_KEY", "reason": "secret_key_shape" }],
+  "advisory": [{ "setting": "BDS_INTAKE_URL", "reason": "missing" }],
+  "checked": ["FORGECUSTOMER_API_BASE", "SUPABASE_URL", "SUPABASE_ANON_KEY", "BDS_INTAKE_URL"],
+  "correlation_id": "..." }
+```
+
+The same shape checks guard two other paths. `GET /api/public-config` returns
+`""` for a Supabase URL or key that fails its check, and `forgeConfigured` is
+true only for a usable `FORGECUSTOMER_API_BASE`. The HUD proxy (`server/hud.ts`)
+sends only a usable anon key to Supabase. A secret key put into
+`SUPABASE_ANON_KEY` therefore never reaches a browser or bypasses RLS.
+
+A failed readiness check does not stop the static site. Pages, assets and
+`/healthz` keep serving. Only the commerce routes fail closed, as before.
+
 ## Error Contract
 
 Every non-2xx ForgeCustomer response carries:

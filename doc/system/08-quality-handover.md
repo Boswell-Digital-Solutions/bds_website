@@ -91,6 +91,7 @@ When the filter skips the workflow, the required check stays pending and blocks 
 4. The contact form now depends on public intake-service availability; if that service is down, users fall back to business email.
 5. Security and ecosystem claims can outpace implementation if future copy is not kept precise.
 6. Repeated header/footer markup increases drift risk across pages.
+7. Render gates nothing on configuration until the operator sets the service health check path to `/readyz` in the dashboard. After each Render change, run the credential-free probe in `docs/operations/render_probe.json`. §9 "Liveness and Readiness" gives the checks. See KI-BDS-20261114-001.
 
 ## Maintenance Rule
 
