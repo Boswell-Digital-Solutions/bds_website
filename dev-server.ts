@@ -6,6 +6,7 @@ import { handleForgeApi } from "./server/forge.ts";
 import { handleHudApi } from "./server/hud.ts";
 import { handleIntakeApi } from "./server/intake.ts";
 import { isUnderConstruction, sendUnderConstruction } from "./server/launch.ts";
+import { readinessReport } from "./server/readiness.ts";
 import { resolvePublicFile } from "./server/security/publication.ts";
 import {
   HttpError,
@@ -15,7 +16,6 @@ import {
   handleHttpError,
   logSecurityEvent,
   readLimitedBody,
-  readinessStatus,
   securityHeaders,
   sendJson,
   sendText,
@@ -152,16 +152,16 @@ function handleHealth(
     return;
   }
 
-  const readiness = readinessStatus();
-  sendJson(
-    response,
-    readiness.ready ? 200 : 503,
-    {
-      status: readiness.ready ? "ready" : "degraded",
-      checks: readiness.missing.length === 0 ? ["configured"] : ["configuration_required"],
-      correlation_id: correlationId,
-    }
-  );
+  // Readiness names failed settings and fixed reason codes, never values. It
+  // makes no upstream call, so it does not track ForgeCustomer uptime.
+  const readiness = readinessReport();
+  sendJson(response, readiness.ready ? 200 : 503, {
+    status: readiness.ready ? "ready" : "not_ready",
+    failed: readiness.failed,
+    advisory: readiness.advisory,
+    checked: readiness.checked,
+    correlation_id: correlationId,
+  });
 }
 
 async function handleCspReport(

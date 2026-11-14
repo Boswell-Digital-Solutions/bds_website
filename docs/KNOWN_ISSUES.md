@@ -112,3 +112,29 @@ New observations go below this heading or into existing linked entries. Setup ob
 - Fix: the mechanism already exists. Set a Cloudflare request-header rule that adds `x-bds-edge-token`, set the same value as `BDS_EDGE_TOKEN` on Render, then set `BDS_REQUIRE_EDGE_TOKEN=true`. The edge plan in `docs/plans/BDS_Website_CSSA_Sentinel_Security_Plan_Set_2026-06-12/`, component 04, covers this. Its status was not checked.
 - Related: `BDS_INTAKE_URL` is also not set, so `/api/intake/consultation` returns 503 and every form falls back to email. The BDS Client Intake plan set tracks that gap.
 - Disposition: **open**. Owner: Charles Boswell.
+
+## KI-BDS-20261114-001: Render gates no deploy on configuration
+
+- Found: 2026-11-14, guardrail review after the ForgeCustomer auth-key incident of the same day.
+- Evidence: the Render dashboard shows no health check path for `bds_website`. `render.yaml` sets `healthCheckPath: /healthz`, but the Blueprint does not manage this service (KI-BDS-20261002-004). `/healthz` returns 200 whatever the configuration is. On 2026-11-14 the deployed `/readyz` returned `503` with only `["configuration_required"]`. It checked presence only, and it required `BDS_INTAKE_URL`, which is deliberately unset (KI-BDS-20261107-003). It was therefore red every day and could not serve as a gate.
+- Fix, part 1 (code, PR on branch `claude/relaxed-johnson-iyd1jp`): `/readyz` now checks that `FORGECUSTOMER_API_BASE`, `SUPABASE_URL` and `SUPABASE_ANON_KEY` are present and usable. It reports `BDS_INTAKE_URL` as advisory only. The 503 body names each failed setting and a reason code, never a value. `/api/public-config` and the HUD proxy withhold an anon key that has a secret shape. `docs/operations/render_probe.json` is the post-change probe. Reference: §9 "Liveness and Readiness".
+- Expected result for today's deployed values: 200. Checked from outside on 2026-11-14 without reading any secret: the public Supabase URL is HTTPS on `*.supabase.co` with no path, the anon key has the `sb_publishable_` shape, and the BFF reaches ForgeCustomer (a dummy bearer returns `401 INVALID_TOKEN`). Not verified: the scheme of `FORGECUSTOMER_API_BASE`. The BFF accepts plain HTTP while `NODE_ENV` is unset (KI-BDS-20261114-003), and readiness rejects it.
+- Fix, part 2 (operator, Render dashboard): after the merge deploys, request `https://bds-website.onrender.com/readyz` and confirm 200. Then set the service health check path to `/readyz`. Readiness depends only on the environment, and Render changes the environment only through a new deploy. So a bad value fails that deploy and the previous instance keeps serving. A running instance does not change state.
+- Before part 2: confirm that the host Render uses for its internal health check is in the deployed `BDS_ALLOWED_HOSTS`. If it is not, the check gets `403 HOST_NOT_ALLOWED` for every configuration.
+- Disposition: **open**. Owner: Charles Boswell. Close when the dashboard health check path is `/readyz` and a deploy passes it.
+
+## KI-BDS-20261114-002: Edge authentication would block Render's health check
+
+- Found: 2026-11-14, with KI-BDS-20261114-001.
+- Evidence: `dev-server.ts` runs `validateEdgeToken()` before it routes `/healthz` and `/readyz`. Render's internal health check does not pass through Cloudflare, so it carries no `x-bds-edge-token` header. When the operator sets `BDS_REQUIRE_EDGE_TOKEN=true` (KI-BDS-20261107-003), both paths return `403 EDGE_TOKEN_INVALID` to Render. With a health check path set, every deploy then fails.
+- Not changed: exempting the health paths from the edge token is a security-boundary change and needs its own review.
+- Fix: before enabling the edge token, decide one of these: exempt only `/healthz` and `/readyz` from the edge check, or remove the Render health check path. Then enable the token.
+- Disposition: **open**, latent; the edge token is not enabled today. Owner: Charles Boswell.
+
+## KI-BDS-20261114-003: The BFF accepts a plain-HTTP ForgeCustomer base on Render
+
+- Found: 2026-11-14, with KI-BDS-20261114-001.
+- Evidence: `parseConfiguredBaseUrl()` in `server/security/http.ts` refuses plain HTTP only when `NODE_ENV=production`. Render does not set `NODE_ENV` for this service (see the `render.yaml` comment). An `http://` value in `FORGECUSTOMER_API_BASE`, `SUPABASE_URL` or `BDS_INTAKE_URL` is therefore proxied over plain HTTP. The forwarded customer bearer token is in that request.
+- Mitigation: `/readyz` now treats `RENDER=true` as deployed mode and reports `insecure_scheme` for such a value.
+- Fix: make `parseConfiguredBaseUrl()` use the same deployed-mode rule (`isDeployed()` in `server/readiness.ts`). This is left to its own reviewed change, as `render.yaml` asks for `NODE_ENV`.
+- Disposition: **open**. Owner: Charles Boswell.
