@@ -251,20 +251,6 @@ export function edgeTokenRequired(): boolean {
   return Boolean(process.env.BDS_EDGE_TOKEN);
 }
 
-export function readinessStatus(): { ready: boolean; missing: string[] } {
-  const missing: string[] = [];
-  if (edgeTokenRequired() && !process.env.BDS_EDGE_TOKEN) {
-    missing.push("edge_authentication");
-  }
-  if (!process.env.FORGECUSTOMER_API_BASE) {
-    missing.push("forgecustomer");
-  }
-  if (!process.env.BDS_INTAKE_URL) {
-    missing.push("intake");
-  }
-  return { ready: missing.length === 0, missing };
-}
-
 export function validateSameOrigin(request: IncomingMessage): void {
   const origin = singletonHeader(request.headers, "origin");
   if (origin) {

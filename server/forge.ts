@@ -29,6 +29,7 @@ import {
   validateNoDuplicateQuery,
   validateSameOrigin,
 } from "./security/http.ts";
+import { forgeCustomerBaseReason, supabaseUrlReason, usableSupabaseAnonKey } from "./readiness.ts";
 
 const API_PREFIX = "/api/forge";
 
@@ -228,12 +229,17 @@ export function findPolicy(method: string, path: string): RoutePolicy | undefine
   return ROUTES.find((item) => item.method === method && item.regex.test(path));
 }
 
-/** Public, browser-safe configuration. Contains no secrets. */
-function publicConfig() {
+/**
+ * Public, browser-safe configuration. Contains no secrets. A value that fails
+ * its readiness shape check is withheld (""), so a secret key pasted into
+ * SUPABASE_ANON_KEY is never served to a browser; login then reports that
+ * Supabase is not configured.
+ */
+export function publicConfig() {
   return {
-    supabaseUrl: process.env.SUPABASE_URL ?? "",
-    supabaseAnonKey: process.env.SUPABASE_ANON_KEY ?? "",
-    forgeConfigured: Boolean(process.env.FORGECUSTOMER_API_BASE),
+    supabaseUrl: supabaseUrlReason() === null ? (process.env.SUPABASE_URL as string) : "",
+    supabaseAnonKey: usableSupabaseAnonKey(),
+    forgeConfigured: forgeCustomerBaseReason() === null,
   };
 }
 

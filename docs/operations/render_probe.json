@@ -1,0 +1,82 @@
+{
+  "schema": "bds.render_probe.v1",
+  "purpose": "Credential-free probe to run after every Render change (deploy, env var edit, plan change). Guardrail (b), operator request 2026-11-14. Every header value below is a dummy; no probe needs or may carry a real credential.",
+  "service": {
+    "name": "bds_website",
+    "render_type": "web_service",
+    "base_url": "https://bds-website.onrender.com",
+    "public_url": "https://bds-digitalsolutions.com",
+    "liveness_path": "/healthz",
+    "health_path": "/readyz",
+    "health_path_note": "Recommended Render healthCheckPath. Not yet set in the dashboard (KI-BDS-20261114-001)."
+  },
+  "retry": {
+    "note": "The service and ForgeCustomer spin down when idle. Retry a 502/503/504 that is not a listed misconfigured signature up to 4 times with 2/4/8/8 s waits before reporting a failure (KI-BDS-20261002-002).",
+    "max_attempts": 5
+  },
+  "probes": [
+    {
+      "id": "liveness",
+      "method": "GET",
+      "path": "/healthz",
+      "headers": {},
+      "expect_status": 200,
+      "expect_json": { "status": "ok" },
+      "misconfigured_signature": "None. Liveness only proves the process answers; it never reflects configuration."
+    },
+    {
+      "id": "readiness",
+      "method": "GET",
+      "path": "/readyz",
+      "headers": {},
+      "expect_status": 200,
+      "expect_json": { "status": "ready", "failed": [] },
+      "misconfigured_signature": "503 with status \"not_ready\" and failed[] naming each setting and a reason code (missing, malformed, insecure_scheme, has_credentials, has_query_or_fragment, has_path, host_not_allowed, secret_key_shape, role_not_anon, project_mismatch). advisory[] entries (BDS_INTAKE_URL) never fail readiness. No value is ever in the body."
+    },
+    {
+      "id": "static_home",
+      "method": "GET",
+      "path": "/",
+      "headers": {},
+      "expect_status": 200,
+      "expect_content_type": "text/html",
+      "misconfigured_signature": "None for configuration: the static site serves even when readiness fails. A non-200 here is an outage, not a config fault."
+    },
+    {
+      "id": "public_config",
+      "method": "GET",
+      "path": "/api/public-config",
+      "headers": {},
+      "expect_status": 200,
+      "expect_json_nonempty": ["supabaseUrl", "supabaseAnonKey"],
+      "expect_json": { "forgeConfigured": true },
+      "redaction": "supabaseAnonKey is public by design, but record only whether it is empty and whether it starts with sb_publishable_; do not paste it into a ticket.",
+      "misconfigured_signature": "Still 200, but supabaseUrl or supabaseAnonKey is \"\" (unset, or withheld because the value failed its shape check, for example a secret key) or forgeConfigured is false."
+    },
+    {
+      "id": "bff_public_catalog",
+      "method": "GET",
+      "path": "/api/forge/v1/plans",
+      "headers": {},
+      "expect_status": 200,
+      "misconfigured_signature": "503 INTEGRATION_UNCONFIGURED or 503 FORGECUSTOMER_API_BASE_INVALID / _INSECURE / _HOST_NOT_ALLOWED (website config); 502 UPSTREAM_UNAVAILABLE (wrong or unreachable host); 5xx passed through from ForgeCustomer."
+    },
+    {
+      "id": "bff_customer_auth",
+      "method": "GET",
+      "path": "/api/forge/v1/account",
+      "headers": { "Authorization": "Bearer probe.dummy.token" },
+      "expect_status": 401,
+      "expect_error_code_any": ["INVALID_TOKEN", "UNAUTHENTICATED", "TOKEN_EXPIRED"],
+      "note": "The dummy bearer passes the BFF shape check and reaches ForgeCustomer, which must refuse it. Observed 2026-11-14: 401 INVALID_TOKEN.",
+      "misconfigured_signature": "503 INTEGRATION_UNCONFIGURED when FORGECUSTOMER_API_BASE is unset; 503 FORGECUSTOMER_API_BASE_INVALID when it has a path or bad syntax; 502 UPSTREAM_UNAVAILABLE for a wrong host; 500 from ForgeCustomer means its own auth configuration is broken (the 2026-11-14 failure class)."
+    }
+  ],
+  "source_evidence": [
+    "dev-server.ts: /healthz and /readyz handler",
+    "server/readiness.ts: readinessReport() checks and reason codes",
+    "server/forge.ts: publicConfig(), route allowlist, INTEGRATION_UNCONFIGURED",
+    "server/security/http.ts: normalizeBearerAuthorization() bearer shape, parseConfiguredBaseUrl() error codes",
+    "tests/readiness.test.ts: valid, missing, malformed, secret-shaped and no-leak cases"
+  ]
+}
