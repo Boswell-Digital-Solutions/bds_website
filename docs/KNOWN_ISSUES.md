@@ -14,6 +14,7 @@ New observations go below this heading or into existing linked entries. Setup ob
 
 #### MF-BDS-20260906-001 — Documentation build skips the snapshot validator in a clean checkout
 
+- **Status**: Closed 2026-09-25 (from this entry's Disposition line).
 - Origin: Codex setup inspection, 2026-09-06; model version unavailable.
 - Baseline: `842b63aee2f7b3f31cf88d88e98052f4b334e239`; category: documentation validation; setup observation, excluded from effectiveness metrics.
 - Evidence: `doc/system/BUILD.sh` invokes the snapshot validator only when `[ -x "$VALIDATOR" ]` is true. The pinned Git tree records `doc/system/validate_snapshots.sh` with mode `100644`, so that condition is false in a clean checkout. The native build exits successfully without running that check.
@@ -27,6 +28,7 @@ New observations go below this heading or into existing linked entries. Setup ob
 
 ## KI-BDS-20260925-001 — GitHub Actions does not start CI because of an account billing lock
 
+- **Status**: Open (from this entry's Disposition line).
 - Found: 2026-09-25, during the closure check for MF-BDS-20260906-001.
 - Evidence: the `CI` runs for `main` at `1cf855f` and `43a14d4` show `failure`. Neither job started. The check-run annotation reads: "The job was not started because your account is locked due to a billing issue."
 - Root cause: a billing lock on the GitHub account or the `Boswell-Digital-Solutions` organization. The cause is not in this repository.
@@ -38,6 +40,7 @@ New observations go below this heading or into existing linked entries. Setup ob
 
 ## KI-BDS-20261002-001: `/apps` lists AuthorForge as live before release
 
+- **Status**: Open (from this entry's Disposition line).
 - Found: 2026-10-02, BDS-WEB-PR-v0.1 CP5 production check.
 - Evidence: production `/apps` shows AuthorForge as `live 1.0.0` with a 2026-06-01 go-live date. The Author-Forge repository has no published GitHub release and reports version 0.1.0. Every other public page labels AuthorForge "in development" (#37).
 - Root cause: `src/lib/products/products.json` is published by Forge_Command (Fleet → Website Publish), not authored in this repository. It still carries the placeholder `status: "live"`, `version: "1.0.0"`, and `commitSha: "seed-catalog-record"`.
@@ -46,6 +49,7 @@ New observations go below this heading or into existing linked entries. Setup ob
 
 ## KI-BDS-20261002-002: First `/api/forge/v1/plans` after idle returns 504
 
+- **Status**: Open (from this entry's Disposition line).
 - Found: 2026-10-02, BDS-WEB-PR-v0.1 CP4/CP5 production checks (seen twice).
 - Evidence: the first `GET /api/forge/v1/plans` after an idle period returned `504`. The next requests returned `200` in about 0.3 s. `/pricing.html` shows "Request failed (504)" to that first visitor.
 - Root cause: likely a ForgeCustomer cold start that exceeds the BFF upstream deadline. Unverified; the cause is not in this repository.
@@ -54,6 +58,7 @@ New observations go below this heading or into existing linked entries. Setup ob
 
 ## KI-BDS-20261002-003: Extensionless page aliases use the asset cache policy
 
+- **Status**: Closed 2026-11-02 (from this entry's Disposition line).
 - Found: 2026-10-02, BDS-WEB-PR-v0.1 CP5 production check.
 - Evidence: `/media` returns `Cache-Control: public, max-age=300`; `/media.html` returns `no-store`.
 - Root cause: `cacheControlFor()` in `server/security/publication.ts` reads the request path. Only paths ending in `.html` or `/` get `no-store`.
@@ -66,6 +71,7 @@ New observations go below this heading or into existing linked entries. Setup ob
 
 ## KI-BDS-20261002-004: A documentation-only push may redeploy the Render service
 
+- **Status**: Open (from this entry's Disposition line).
 - Found: 2026-10-02, CI scope rollout.
 - Evidence: `render.yaml` sets no `autoDeployTrigger` and no `buildFilter`. Render deploys on each push to the watched branch by default. A GitHub Actions `paths` filter cannot stop this.
 - Not verified: the Render dashboard setting for this service. The deploy does not read Markdown, so a documentation-only deploy publishes no new content.
@@ -78,6 +84,7 @@ New observations go below this heading or into existing linked entries. Setup ob
 
 ## KI-BDS-20261102-001: Cloudflare raises the browser cache time of `.js` and `.txt` files to 4 hours
 
+- **Status**: Closed 2026-11-02 (from this entry's Disposition line).
 - Found: 2026-11-02, during the deployed-site check for KI-BDS-20261002-003.
 - Evidence: the Render origin sends `Cache-Control: public, max-age=300` for `/src/js/site.js` and `/robots.txt`. Through Cloudflare, the same files return `public, max-age=14400`. `/sitemap.xml` keeps `max-age=300`, and HTML pages keep `no-store`.
 - Root cause: the Cloudflare zone's Browser Cache TTL setting (4 hours). Cloudflare applies it to its default cacheable file types, which include `.js` and `.txt` but not `.xml`. The setting is in the Cloudflare dashboard, not in this repository. Confirmed 2026-11-02: the operator changed only that setting, and the live headers then matched the origin.
@@ -89,6 +96,7 @@ New observations go below this heading or into existing linked entries. Setup ob
 
 ## KI-BDS-20261107-001: The deployed host list rejects both `www` hosts
 
+- **Status**: Open (from this entry's Disposition line).
 - Found: 2026-11-07, BDS Client Intake WP-00 evidence (Addenda 2 and 4).
 - Evidence: the operator copied `BDS_ALLOWED_HOSTS` from the Render dashboard on 2026-11-07. The stored value writes `www\.bds-digitalsolutions.com` and `www\.boswelldigitalsolutions.com`. `isAllowedHost` in `server/security/http.ts` does an exact match after `splitCsv`, so an entry with a backslash never matches. A local run of `validateAllowedHost` at `5be4b75` returned `403 HOST_NOT_ALLOWED` for `www.bds-digitalsolutions.com` and `www.boswelldigitalsolutions.com`.
 - Not verified: whether `www` traffic reaches the origin. The apex loads on the operator's phone (2026-11-07 17:38). Cloudflare may redirect `www` to the apex first. That redirect and the Render custom-domain list for `www` were not checked.
@@ -98,6 +106,7 @@ New observations go below this heading or into existing linked entries. Setup ob
 
 ## KI-BDS-20261107-002: The deployed host list allows the former domain
 
+- **Status**: Open (from this entry's Disposition line).
 - Found: 2026-11-07, with KI-BDS-20261107-001.
 - Evidence: the stored `BDS_ALLOWED_HOSTS` contains `boswelldigitalsolutions.com`, the former domain. `tests/security.test.ts` names that domain as FORMER and requires the default allowlist to refuse it. `render.yaml` does not list it.
 - Root cause: unknown. Either the operator intends to serve the former domain again, which the repository does not reflect, or the stored value is stale.
@@ -106,6 +115,7 @@ New observations go below this heading or into existing linked entries. Setup ob
 
 ## KI-BDS-20261107-003: The Render origin accepts requests that bypass Cloudflare
 
+- **Status**: Open (from this entry's Disposition line).
 - Found: 2026-11-07, BDS Client Intake WP-00 evidence (Addendum 1, CF-01).
 - Evidence: the allowlist includes `bds-website.onrender.com`. `validateEdgeToken` in `server/security/http.ts` runs only when `BDS_EDGE_TOKEN` is set or `BDS_REQUIRE_EDGE_TOKEN=true`. The operator confirmed on 2026-11-07 that neither is set on the Render service. The complete list has four variables.
 - Impact: a client can call the origin directly and skip every Cloudflare control: WAF rules, rate limits and any future Turnstile check. Origin rate limiting would also see Cloudflare's address unless `CF-Connecting-IP` is trusted, and that header is trustworthy only behind the edge token.
@@ -115,6 +125,7 @@ New observations go below this heading or into existing linked entries. Setup ob
 
 ## KI-BDS-20261114-001: Render gates no deploy on configuration
 
+- **Status**: Open (from this entry's Disposition line).
 - Found: 2026-11-14, guardrail review after the ForgeCustomer auth-key incident of the same day.
 - Evidence: the Render dashboard shows no health check path for `bds_website`. `render.yaml` sets `healthCheckPath: /healthz`, but the Blueprint does not manage this service (KI-BDS-20261002-004). `/healthz` returns 200 whatever the configuration is. On 2026-11-14 the deployed `/readyz` returned `503` with only `["configuration_required"]`. It checked presence only, and it required `BDS_INTAKE_URL`, which is deliberately unset (KI-BDS-20261107-003). It was therefore red every day and could not serve as a gate.
 - Fix, part 1 (code, PR on branch `claude/relaxed-johnson-iyd1jp`): `/readyz` now checks that `FORGECUSTOMER_API_BASE`, `SUPABASE_URL` and `SUPABASE_ANON_KEY` are present and usable. It reports `BDS_INTAKE_URL` as advisory only. The 503 body names each failed setting and a reason code, never a value. `/api/public-config` and the HUD proxy withhold an anon key that has a secret shape. `docs/operations/render_probe.json` is the post-change probe. Reference: §9 "Liveness and Readiness".
@@ -125,6 +136,7 @@ New observations go below this heading or into existing linked entries. Setup ob
 
 ## KI-BDS-20261114-002: Edge authentication would block Render's health check
 
+- **Status**: Open (from this entry's Disposition line).
 - Found: 2026-11-14, with KI-BDS-20261114-001.
 - Evidence: `dev-server.ts` runs `validateEdgeToken()` before it routes `/healthz` and `/readyz`. Render's internal health check does not pass through Cloudflare, so it carries no `x-bds-edge-token` header. When the operator sets `BDS_REQUIRE_EDGE_TOKEN=true` (KI-BDS-20261107-003), both paths return `403 EDGE_TOKEN_INVALID` to Render. With a health check path set, every deploy then fails.
 - Not changed: exempting the health paths from the edge token is a security-boundary change and needs its own review.
@@ -133,6 +145,7 @@ New observations go below this heading or into existing linked entries. Setup ob
 
 ## KI-BDS-20261114-003: The BFF accepts a plain-HTTP ForgeCustomer base on Render
 
+- **Status**: Open (from this entry's Disposition line).
 - Found: 2026-11-14, with KI-BDS-20261114-001.
 - Evidence: `parseConfiguredBaseUrl()` in `server/security/http.ts` refuses plain HTTP only when `NODE_ENV=production`. Render does not set `NODE_ENV` for this service (see the `render.yaml` comment). An `http://` value in `FORGECUSTOMER_API_BASE`, `SUPABASE_URL` or `BDS_INTAKE_URL` is therefore proxied over plain HTTP. The forwarded customer bearer token is in that request.
 - Mitigation: `/readyz` now treats `RENDER=true` as deployed mode and reports `insecure_scheme` for such a value.
@@ -141,6 +154,7 @@ New observations go below this heading or into existing linked entries. Setup ob
 
 ## KI-BDS-20261115-001: The documentation index lists none of the authored chapters
 
+- **Status**: Open (from this entry's Disposition line).
 - Found: 2026-11-15, BDS-ORG-ARCH-AUDIT-2026-11.
 - Evidence (Observed (doc tree)): `bds_website@3b6a2e51d7:doc/system/_index.md:L24-L32` lists seven parts. All seven are bootstrap placeholders: `00-overview`, `01-architecture`, `10-scope`, `20-structure`, `30-governance`, `40-change-control` and `90-appendices`. The nine authored chapters, `01-overview-philosophy` through `09-forgecustomer-integration` (about 48 KB), do not appear in the table. `_index.md:L11` still reads "1.0 (bootstrap)". The prefix `01-` is used twice (`01-architecture.md` and `01-overview-philosophy.md`).
 - Impact: a reader who uses the index finds only placeholders. The generated `doc/BDSSYSTEM.md` does contain the authored chapters.
@@ -150,6 +164,7 @@ New observations go below this heading or into existing linked entries. Setup ob
 
 ## KI-BDS-20261115-002: A stale second compiled artifact `doc/bwSYSTEM.md` remains
 
+- **Status**: Open (from this entry's Disposition line).
 - Found: 2026-11-15, BDS-ORG-ARCH-AUDIT-2026-11.
 - Evidence (Observed (doc tree)): `bds_website@3b6a2e51d7:doc/bwSYSTEM.md:L7` reads "1.3 (2026-03-03)". The file is 21579 bytes. It does not contain chapter 09 or the "Sales Launch Switch" section. `doc/BDSSYSTEM.md` is 54655 bytes and contains both. `doc/system/BUILD.sh:L6-L7` sets the designation `BDS` and the output `doc/BDSSYSTEM.md`, so the build never writes `bwSYSTEM.md`. `doc/system/04-project-structure.md:L98` still lists `bwSYSTEM.md` in the file tree.
 - Impact: two compiled references exist. One of them is out of date and does not carry the current commerce and launch-gate text.
@@ -159,6 +174,7 @@ New observations go below this heading or into existing linked entries. Setup ob
 
 ## KI-BDS-20261115-003: The page inventory and overview mark the sales pages "Live" while `SALES_OPEN` is `false`
 
+- **Status**: Open (from this entry's Disposition line).
 - Found: 2026-11-15, BDS-ORG-ARCH-AUDIT-2026-11.
 - Evidence (Observed (source)): `bds_website@3b6a2e51d7:server/launch.ts:L19` sets `SALES_OPEN = false`. The server then returns `under-construction.html` in place of each sales page.
 - Evidence (Documented): `doc/system/05-page-inventory.md:L8, L14-L15, L21-L23, L42-L45` describe the sales, account and checkout pages as "Live" and add "Under construction while `SALES_OPEN` is `false`". `doc/system/01-overview-philosophy.md:L26` says "Stripe Checkout start and a signed-in account area are live" with no qualifier. This also disagrees with `doc/system/05-page-inventory.md:L150-L152` (the gate) and `doc/system/08-quality-handover.md:L88-L89`.
